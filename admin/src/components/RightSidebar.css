@@ -1,0 +1,324 @@
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #252526;
+  color: #cccccc;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #bbbbbb;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.refresh-btn, .clear-failed-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.refresh-btn:hover, .clear-failed-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.clear-failed-btn {
+  color: #f14c4c;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #858585;
+  text-align: center;
+}
+
+.empty-icon, .spinner {
+  font-size: 32px;
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.empty-state .hint {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.run-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.run-item {
+  background-color: #2d2d2d;
+  border-radius: 4px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.run-item:hover {
+  background-color: #37373d;
+}
+
+.run-item.selected {
+  background-color: #094771;
+  border-left-color: #0078d4;
+}
+
+.run-item.status-pending {
+  border-left-color: #ccaa00;
+}
+
+.run-item.status-running {
+  border-left-color: #0078d4;
+}
+
+.run-item.status-completed {
+  border-left-color: #4ec9b0;
+}
+
+.run-item.status-failed {
+  border-left-color: #f14c4c;
+}
+
+.run-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.run-summary {
+  font-size: 11px;
+  color: #9d9d9d;
+  margin-bottom: 6px;
+  padding-left: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  font-variant-emoji: emoji;
+}
+
+.status-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.status-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.workload-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delete-run-btn {
+  background: none;
+  border: none;
+  color: #858585;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+
+.run-item:hover .delete-run-btn {
+  opacity: 0.7;
+}
+
+.delete-run-btn:hover {
+  opacity: 1 !important;
+  background-color: rgba(241, 76, 76, 0.2);
+  color: #f14c4c;
+}
+
+.run-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.run-duration, .run-files {
+  font-size: 10px;
+  color: #858585;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.run-duration {
+  color: #4ec9b0;
+}
+
+.run-files {
+  color: #3794ff;
+}
+
+.run-time {
+  font-size: 11px;
+  color: #858585;
+  font-family: 'Consolas', 'Monaco', monospace;
+  margin-left: auto;
+}
+
+.status-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.status-badge.pending {
+  background-color: rgba(204, 170, 0, 0.2);
+  color: #ccaa00;
+}
+
+.status-badge.running {
+  background-color: rgba(0, 120, 212, 0.2);
+  color: #3794ff;
+}
+
+.status-badge.completed {
+  background-color: rgba(78, 201, 176, 0.2);
+  color: #4ec9b0;
+}
+
+.status-badge.failed {
+  background-color: rgba(241, 76, 76, 0.2);
+  color: #f14c4c;
+}
+
+/* Date Group Styles */
+.date-group {
+  margin-bottom: 4px;
+}
+
+.date-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+  transition: background-color 0.15s;
+}
+
+.date-group-header:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.date-group-header .chevron {
+  font-size: 10px;
+  color: #858585;
+  width: 12px;
+}
+
+.date-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9d9d9d;
+  flex: 1;
+}
+
+.date-count {
+  font-size: 10px;
+  color: #6d6d6d;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.date-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 4px;
+  margin-top: 4px;
+}
+
+/* Scheduled status */
+.run-item.status-scheduled {
+  border-left-color: #9d7cd8;
+  background-color: rgba(157, 124, 216, 0.08);
+}
+
+.run-item.status-scheduled:hover {
+  background-color: rgba(157, 124, 216, 0.15);
+}
+
+.run-item.status-scheduled .workload-name {
+  color: #c4b5fd;
+}
+
+.status-badge.scheduled {
+  background-color: rgba(157, 124, 216, 0.2);
+  color: #c4b5fd;
+}
+
+/* Scheduled group special styling */
+.date-group:first-child .date-group-header .date-label {
+  color: #c4b5fd;
+}
+
+.date-group:first-child .date-count {
+  background-color: rgba(157, 124, 216, 0.2);
+  color: #c4b5fd;
+}

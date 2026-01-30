@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.local
+
+# Data (except templates)
+data/runs/
+data/schedules/
+data/alerts/
+
+# Personal workloads (workloads-demo/ is checked in as examples)
+workloads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Docker volumes (if local)
+postgres_data/
+redis_data/
+
+# SQLite (if using local Inngest without Docker)
+.inngest/
+*.db
+*.db-journal
+# Admin app build artifacts
+admin/release/
+admin/dist-electron/
+admin/dist/

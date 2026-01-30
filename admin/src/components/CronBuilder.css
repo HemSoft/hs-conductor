@@ -1,0 +1,231 @@
+.cron-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Frequency Selection */
+.cron-frequency label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+  margin-bottom: 8px;
+}
+
+.frequency-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.freq-btn {
+  background-color: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  color: #cccccc;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.freq-btn:hover {
+  background-color: #454545;
+  border-color: #505050;
+}
+
+.freq-btn.active {
+  background-color: #0e639c;
+  border-color: #1177bb;
+  color: white;
+}
+
+/* Options */
+.cron-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cron-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cron-option.custom {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.option-label {
+  font-size: 13px;
+  color: #cccccc;
+  min-width: 60px;
+}
+
+.option-suffix {
+  font-size: 13px;
+  color: #858585;
+}
+
+.option-separator {
+  font-size: 16px;
+  color: #cccccc;
+  font-weight: bold;
+}
+
+.cron-option select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #3c3c3c;
+  border: 1px solid #454545;
+  color: #cccccc;
+  padding: 6px 28px 6px 10px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%23858585' d='M2.5 4.5L6 8l3.5-3.5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  min-width: 70px;
+}
+
+.cron-option select option {
+  background-color: #252526;
+  color: #cccccc;
+  padding: 6px 10px;
+}
+
+.cron-option select option:hover,
+.cron-option select option:focus,
+.cron-option select option:checked {
+  background-color: #094771;
+  color: #ffffff;
+}
+
+.cron-option select:hover {
+  border-color: #505050;
+  background-color: #454545;
+}
+
+.cron-option select:focus {
+  outline: none;
+  border-color: #0078d4;
+  background-color: #1e1e1e;
+}
+
+/* Day Selector */
+.day-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.day-btn {
+  width: 32px;
+  height: 32px;
+  background-color: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  color: #cccccc;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-btn:hover {
+  background-color: #454545;
+  border-color: #505050;
+}
+
+.day-btn.active {
+  background-color: #0e639c;
+  border-color: #1177bb;
+  color: white;
+}
+
+/* Custom Cron Input */
+.custom-cron-input {
+  background-color: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  color: #cccccc;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  border-radius: 4px;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.custom-cron-input:focus {
+  outline: none;
+  border-color: #0078d4;
+  background-color: #1e1e1e;
+}
+
+.cron-format-hint {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cron-part {
+  font-size: 10px;
+  color: #6e6e6e;
+  text-align: center;
+  padding: 2px 6px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+/* Preview */
+.cron-preview {
+  background-color: rgba(0, 120, 212, 0.1);
+  border: 1px solid rgba(0, 120, 212, 0.3);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-expression {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-label {
+  font-size: 11px;
+  color: #858585;
+  text-transform: uppercase;
+}
+
+.preview-cron {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: #4ec9b0;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.preview-description {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cccccc;
+}
+
+.preview-icon {
+  font-size: 14px;
+}

@@ -1,0 +1,89 @@
+# hs-cli-conductor: Self-hosted Inngest + Infrastructure
+# Documentation: https://www.inngest.com/docs/self-hosting
+
+services:
+  # ============================================================
+  # INNGEST SERVER (Self-hosted)
+  # ============================================================
+  inngest:
+    image: inngest/inngest:latest
+    container_name: conductor-inngest
+    command: "inngest start"
+    ports:
+      - "2901:8288"   # Event API, REST API, Dashboard
+      - "2902:8289"   # Connect gateway
+    environment:
+      # Generate these with: openssl rand -hex 32
+      - INNGEST_EVENT_KEY=${INNGEST_EVENT_KEY:-test-event-key-12345678}
+      - INNGEST_SIGNING_KEY=${INNGEST_SIGNING_KEY:-deadbeef12345678deadbeef12345678}
+      - INNGEST_POSTGRES_URI=postgres://inngest:inngestpass@postgres:5432/inngest
+      - INNGEST_REDIS_URI=redis://redis:6379
+      - INNGEST_LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - conductor-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8288/health"]  # Internal port
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # ============================================================
+  # POSTGRES (Config & History Persistence)
+  # ============================================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: conductor-postgres
+    environment:
+      - POSTGRES_DB=inngest
+      - POSTGRES_USER=inngest
+      - POSTGRES_PASSWORD=inngestpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - conductor-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inngest -d inngest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # REDIS (Queue & State Store)
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: conductor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - conductor-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: conductor-postgres-data
+  redis_data:
+    name: conductor-redis-data
+
+networks:
+  conductor-network:
+    name: conductor-network
+    driver: bridge

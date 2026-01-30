@@ -1,0 +1,65 @@
+# GitHub Activity
+# Type: task
+# Fetches your GitHub activity and generates a summary
+
+id: github-activity
+name: GitHub Activity Summary
+description: Fetches your recent GitHub activity and creates an AI-powered summary
+type: task
+version: 1.0.0
+tags:
+  - developer
+  - github
+  - metrics
+
+alert:
+  condition: always
+  message: "📊 Your GitHub activity summary is ready!"
+
+steps:
+  - id: fetch-user-repos
+    name: Fetch User Repositories
+    worker: fetch-worker
+    config:
+      url: https://api.github.com/user/repos
+      format: json
+      headers:
+        Authorization: "Bearer ${GITHUB_TOKEN}"
+        Accept: application/vnd.github+json
+      query:
+        sort: updated
+        per_page: 100
+    output: repos.json
+
+  - id: fetch-user-events
+    name: Fetch User Events
+    worker: fetch-worker
+    config:
+      url: https://api.github.com/users/${GITHUB_USERNAME}/events
+      format: json
+      headers:
+        Authorization: "Bearer ${GITHUB_TOKEN}"
+        Accept: application/vnd.github+json
+      query:
+        per_page: 100
+    output: events.json
+
+  - id: summarize-activity
+    name: Summarize Activity
+    worker: ai-worker
+    config:
+      prompt: |
+        Analyze this GitHub activity data and create a comprehensive summary:
+        
+        1. **Statistics**: Total repos, commits, PRs, issues
+        2. **Most Active Repositories**: Top 5 by recent activity
+        3. **Activity Timeline**: Breakdown by day/week
+        4. **Language Breakdown**: Primary languages used
+        5. **Insights**: Patterns, productivity trends, recommendations
+        
+        Make it visually appealing with emojis and markdown formatting.
+      model: claude-sonnet-4.5
+    input:
+      - repos.json
+      - events.json
+    output: activity-summary.md

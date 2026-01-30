@@ -1,0 +1,62 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #1e1e1e;
+}
+
+.app-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Allotment customization */
+.split-view-view {
+  overflow: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(121, 121, 121, 0.4);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(121, 121, 121, 0.7);
+}
+
+/* Global select/dropdown styling */
+select {
+  font-family: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+select option {
+  background-color: #252526;
+  color: #cccccc;
+  padding: 8px;
+}
+
+select option:checked,
+select option:hover {
+  background: linear-gradient(#094771, #094771);
+  background-color: #094771 !important;
+  color: #ffffff;
+}
+
+/* Fix for dropdown list styling in Electron */
+select::-ms-expand {
+  display: none;
+}

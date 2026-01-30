@@ -1,0 +1,24 @@
+id: joke
+name: Tell a Joke
+description: Generates a programming joke on a given topic
+type: ad-hoc
+version: 1.0.0
+tags:
+  - fun
+  - demo
+
+alert:
+  condition: always
+  message: "Your joke is ready! 🎭"
+
+prompt: |
+  Tell me a funny {{topic}} programming joke.
+  Keep it short and punchy.
+input:
+  topic:
+    type: string
+    required: false
+    description: The topic for the joke (e.g., JavaScript, Python, recursion)
+
+output:
+  format: markdown

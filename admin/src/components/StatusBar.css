@@ -1,0 +1,146 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  min-height: 22px;
+  background-color: #181818;
+  border-top: 1px solid #252526;
+  color: #9d9d9d;
+  font-size: 12px;
+  padding: 0 10px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.status-bar-left,
+.status-bar-center,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-bar-left {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.status-bar-center {
+  flex: 0;
+  justify-content: center;
+}
+
+.status-bar-right {
+  flex: 0;
+  justify-content: flex-end;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: default;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.status-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #cccccc;
+}
+
+.status-item-secondary {
+  opacity: 0.85;
+}
+
+.status-item-secondary .status-text {
+  font-weight: 400;
+}
+
+.status-item-active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #4ec9b0;
+}
+
+.status-item-time {
+  font-family: 'Consolas', 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.status-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.status-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-divider {
+  width: 1px;
+  height: 14px;
+  background-color: #454545;
+  margin: 0 6px;
+}
+
+/* Custom tooltip styling */
+.status-item[data-tooltip] {
+  position: relative;
+}
+
+.status-item[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  color: #cccccc;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 6px 10px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+}
+
+.status-item[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* Spinning animation for running indicator */
+.status-icon.spinning {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Slight pulse for active items */
+.status-item-active {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+}
