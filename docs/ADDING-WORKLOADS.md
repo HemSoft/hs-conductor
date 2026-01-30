@@ -113,6 +113,7 @@ steps:
 Execute commands and capture output. Use for deterministic tasks that don't require AI.
 
 **Config:**
+
 - `command`: Executable to run (e.g., "pwsh", "bash", "node")
 - `args`: Array of arguments
 - `cwd`: Working directory (optional)
@@ -121,6 +122,7 @@ Execute commands and capture output. Use for deterministic tasks that don't requ
 - `filter`: Regex pattern to filter output lines (optional)
 
 **Example:**
+
 ```yaml
 steps:
   - id: run-script

@@ -10,6 +10,7 @@
 ## Vision
 
 Transform `hs-conductor` from a personal automation tool into a professional, presentation-ready project that:
+
 - **Showcases capabilities** through compelling example workloads
 - **Provides smooth onboarding** for new users pulling the repo
 - **Protects personal data** while keeping it backed up
@@ -70,17 +71,20 @@ data/
 ### How It Works
 
 **First-time setup:**
+
 ```powershell
 # Copy demo workloads to your personal folder
 Copy-Item -Recurse workloads-demo\* workloads\
 ```
 
 **Workload Resolution:**
+
 1. System searches `workloads/` first (personal)
 2. Falls back to `workloads-demo/` (examples)
 3. Personal workloads can override demo workloads by ID
 
 **Privacy:**
+
 - `workloads/` is gitignored - your automation stays private
 - `data/runs/`, `data/schedules/`, `data/alerts/` also gitignored
 - Only `workloads-demo/` is checked into git as examples
@@ -88,12 +92,14 @@ Copy-Item -Recurse workloads-demo\* workloads\
 ### Backup Strategy
 
 **Personal Data to Backup:**
+
 - `workloads/` - All your custom automation
 - `data/schedules/` - Cron schedules
 - `data/alerts/` - Alert history (optional)
 - `data/runs/` - Usually temporary, backup optional
 
-**Recommended: OneDrive Symlink**
+### Recommended: OneDrive Symlink
+
 ```powershell
 # Symlink personal workloads to OneDrive
 New-Item -ItemType SymbolicLink `
@@ -108,6 +114,7 @@ New-Item -ItemType SymbolicLink `
 
 **Alternative: Private Git Repo**
 Create `hs-conductor-personal` private repo containing:
+
 - `workloads/` folder
 - `data/schedules/` folder
 - Clone alongside main repo
@@ -115,21 +122,25 @@ Create `hs-conductor-personal` private repo containing:
 ---
 
 ## Example Workload Showcase✅ Created
+
 - **Showcases:** Simple AI worker, user input
 - **Use case:** Quick win for testing installation
 - **Path:** `workloads-demo/ad-hoc/`
 
-#### 2. **weather.yaml** (ad-hoc) - ✅ Created
+### 2. **weather.yaml** (ad-hoc) - ✅ Created
+
 - **Showcases:** JSON output, real-time data
 - **Use case:** Practical utility example
 - **Path:** `workloads-demo/ad-hoc/`
 
-#### 3. **news-digest.yaml** (task) - ✅ Created
+### 3. **news-digest.yaml** (task) - ✅ Created
+
 - **Showcases:** Multi-worker orchestration, fetch + AI
 - **Use case:** Information aggregation
 - **Path:** `workloads-demo/tasks/`
 
 #### 4. **code-review.yaml** (task) - ✅ Created
+
 - **Showcases:** Exec worker, file analysis, AI feedback
 - **Use case:** Developer workflow
 - **Path:** `workloads-demo/tasks/`
@@ -138,6 +149,7 @@ Create `hs-conductor-personal` private repo containing:
   2. Analyze code quality (ai-worker)
 
 #### 5. **github-activity.yaml** (task) - ✅ Created
+
 - **Showcases:** API integration, authenticated requests
 - **Use case:** Developer metrics
 - **Path:** `workloads-demo/tasks/`
@@ -147,6 +159,7 @@ Create `hs-conductor-personal` private repo containing:
   3. Summarize activity (ai-worker)
 
 #### 6. **morning-brief.yaml** (workflow) - ✅ Created
+
 - **Showcases:** Complex workflow, parallel execution, dependencies
 - **Use case:** Daily automation
 - **Path:** `workloads-demo/workflows/`
@@ -214,6 +227,7 @@ When a new user runs `conductor` for the first time:
 ✅ Phase 1: Structure Reorganization - COMPLETED
 
 **Actions:**
+
 - [x] Create `workloads-demo/` directory structure
 - [x] Create `workloads/` directory (gitignored)
 - [x] Move existing demo workloads to `workloads-demo/`
@@ -225,6 +239,7 @@ When a new user runs `conductor` for the first time:
 - [ ] Update `.gitignore` to exclude `workloads/personal/`, `data/runs/`, `data/schedules/`
 
 **Git Operations:**
+
 ```powershell
 # Create directories
 New-Item -ItemType Directory -Path "workloads\examples\ad-hoc", "workloads\examples\tasks", "workloads\examples\workflows"
@@ -246,6 +261,7 @@ Remove-Item workloads\ad-hoc, workloads\tasks, workloads\workflows -Recurse
 ```
 
 **Update `.gitignore`:**
+
 ```gitignore
 # Personal workloads and data
 workloads/personal/
@@ -277,6 +293,7 @@ node_modules/
 ### Phase 3: New Example Workloads (3 hours)
 
 Create new example workloads:
+
 - [ ] `code-review.yaml` - Developer workflow
 - [ ] `github-activity.yaml` - API integration
 - [ ] `morning-brief.yaml` - Complex workflow
@@ -297,11 +314,13 @@ Create new example workloads:
 - [ ✅ Phase 3: New Example Workloads - COMPLETED
 
 Created new example workloads:
+
 - [x] `code-review.yaml` - Developer workflow (exec → AI)
 - [x] `github-activity.yaml` - API integration (fetch → AI)
 - [x] `morning-brief.yaml` - Complex workflow (parallel fetch → aggregate → AI)
 
 All stored in `workloads-demo/` and ready for users to copy. backup
+
 - [ ] Add backup instructions to README
 
 ---

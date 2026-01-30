@@ -45,7 +45,7 @@ When releasing a new version, update ALL of these locations:
 ### 1. Changelog
 
 - [ ] **`CHANGELOG.md`** (root) - Add entry under `[Unreleased]` or new version section
-- Format: Keep a Changelog standard (https://keepachangelog.com)
+- Format: Keep a Changelog standard (<https://keepachangelog.com>)
 - Include: Added, Changed, Fixed, Removed sections as needed
 
 ### 2. Package Files
@@ -82,6 +82,7 @@ $old = "0.1.0"; $new = "0.2.0"
 ## Current State
 
 **Note:** Version inconsistency detected during skill creation:
+
 - Root `package.json`: 0.1.0
 - Admin `package.json`: 0.0.0
 - TitleBar alert: 0.1.0

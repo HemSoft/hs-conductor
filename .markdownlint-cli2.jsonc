@@ -1,0 +1,28 @@
+{
+  // Markdown linting configuration
+  "config": {
+    "default": true,
+    "MD013": false, // Line length - disabled for flexibility
+    "MD033": false, // Allow inline HTML
+    "MD041": false, // First line in file should be top-level heading - disabled for frontmatter
+    "MD024": {
+      // Multiple headings with same content - allow siblings
+      "siblings_only": true
+    },
+    "MD040": false, // Fenced code language - disabled as not all blocks need language
+    "MD060": false // Table column style - disabled to allow flexible table formatting
+  },
+  "globs": [
+    "**/*.md"
+  ],
+  "ignores": [
+    "node_modules/**",
+    "dist/**",
+    "admin/node_modules/**",
+    "admin/dist/**",
+    "admin/dist-electron/**",
+    "admin/release/**",
+    "data/runs/**",
+    "CHANGELOG.md"
+  ]
+}

@@ -23,6 +23,7 @@
 - **Node.js 22+** with npm (required for installing Copilot CLI)
   - Install: Download from [nodejs.org](https://nodejs.org/) or use a version manager like [nvm](https://github.com/nvm-sh/nvm)
   - Verify:
+
     ```bash
     node --version
     npm --version
@@ -30,24 +31,32 @@
 
 - **Bun 1.2+** (runtime for the conductor application)
   - Install (Windows):
+
     ```powershell
     powershell -c "irm bun.sh/install.ps1 | iex"
     ```
+
   - Install (macOS/Linux):
+
     ```bash
     curl -fsSL https://bun.sh/install | bash
     ```
+
   - Verify:
+
     ```bash
     bun --version
     ```
 
 - **GitHub Copilot CLI** (AI inference)
   - Install:
+
     ```bash
     npm install -g @github/copilot-cli
     ```
+
   - Authenticate:
+
     ```bash
     copilot auth
     ```
@@ -107,6 +116,7 @@ curl -X POST http://localhost:2900/run/news-digest
 ```
 
 ### 6
+
 ## Keyboard Shortcuts
 
 The admin UI supports various keyboard shortcuts across different contexts:
@@ -136,9 +146,10 @@ The admin UI supports various keyboard shortcuts across different contexts:
 | `Enter` | Add tag (when focused on tag input field) |
 
 ## Architecture
+
 . Monitor
 
-- **Inngest Dashboard**: http://localhost:2901
+- **Inngest Dashboard**: <http://localhost:2901>
 - **Plan Status**: Check execution logs in the terminal
 
 ```
@@ -219,17 +230,20 @@ No API keys or paid subscription required - works with the free Copilot tier (50
 Models are fetched dynamically from the Copilot CLI at runtime. The system automatically filters to the latest version of each model family:
 
 **Claude (Anthropic):**
+
 - `claude-sonnet-4.5` (default) - Best balance of speed/quality
 - `claude-opus-4.5` - Most capable, highest quality
 - `claude-haiku-4.5` - Fastest, most cost-effective
 
 **GPT (OpenAI):**
+
 - `gpt-5.2` - Latest GPT model
 - `gpt-5.1-codex` - Code-specialized
 - `gpt-5` - Stable baseline
 - `gpt-5-mini` - Cost-effective
 
 **Gemini (Google):**
+
 - `gemini-3-pro` - Google's latest
 
 *Note: Available models depend on your Copilot subscription tier.*

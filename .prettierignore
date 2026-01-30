@@ -1,0 +1,10 @@
+dist
+node_modules
+*.log
+.env
+.env.*
+data/runs
+admin/dist
+admin/dist-electron
+admin/release
+*.md

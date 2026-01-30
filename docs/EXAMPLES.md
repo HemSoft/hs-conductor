@@ -32,6 +32,7 @@ Generates a programming joke on a given topic using AI.
 Perfect first example - runs fast, shows AI worker in action, demonstrates user input.
 
 **Usage:**
+
 ```powershell
 # Default topic
 conductor run joke
@@ -45,6 +46,7 @@ conductor run joke
 ```
 
 **Expected Output:**
+
 ```markdown
 # Joke Result
 
@@ -58,6 +60,7 @@ Because light attracts bugs! 🐛
 ```
 
 **Learning Points:**
+
 - ✅ Simple ad-hoc workload structure
 - ✅ AI worker usage
 - ✅ User input handling
@@ -76,6 +79,7 @@ Fetches current weather conditions for a location and returns structured JSON.
 Demonstrates JSON output format, real-time data fetching, and conditionally triggered alerts.
 
 **Usage:**
+
 ```powershell
 # Get weather for a city
 conductor run weather --input location:"Mooresville, NC"
@@ -86,6 +90,7 @@ conductor run weather
 ```
 
 **Expected Output:**
+
 ```json
 {
   "location": "Mooresville, NC",
@@ -99,11 +104,13 @@ conductor run weather
 
 **Alert Trigger:**  
 If conditions include "severe", "storm", or "warning", you'll get a notification:
+
 ```
 ⚠️ Severe weather alert!
 ```
 
 **Learning Points:**
+
 - ✅ JSON output format
 - ✅ Conditional alerts based on output content
 - ✅ Real-time data integration
@@ -124,15 +131,18 @@ Fetches news from multiple RSS feeds and creates an AI-summarized digest with to
 Shows multi-worker orchestration (fetch → AI), dependency between steps, and information aggregation.
 
 **Usage:**
+
 ```powershell
 conductor run news-digest
 ```
 
 **Steps:**
+
 1. **fetch-news** (fetch-worker): Pulls from Hacker News and Ars Technica RSS feeds
 2. **summarize** (ai-worker): Analyzes and creates digest with top 10 stories
 
 **Expected Output:**
+
 ```markdown
 # News Digest
 
@@ -155,6 +165,7 @@ conductor run news-digest
 ```
 
 **Learning Points:**
+
 - ✅ Multi-step task execution
 - ✅ Fetch worker for RSS feeds
 - ✅ AI worker for summarization
@@ -175,11 +186,13 @@ Reviews your local git changes and provides AI-powered code quality feedback.
 Developer workflow example, shows file worker reading local files, demonstrates AI analysis capabilities.
 
 **Planned Steps:**
+
 1. **get-diff** (exec-worker): Runs `git diff` to get uncommitted changes
 2. **analyze-quality** (ai-worker): Reviews code for issues, best practices, security
 3. **generate-report** (file-worker): Creates formatted markdown report
 
 **Expected Output:**
+
 ```markdown
 # Code Review Report
 
@@ -207,6 +220,7 @@ Developer workflow example, shows file worker reading local files, demonstrates 
 ```
 
 **Learning Points:**
+
 - ✅ Exec worker for running system commands
 - ✅ File worker for local file operations
 - ✅ AI worker for analysis
@@ -226,11 +240,13 @@ Fetches your GitHub activity and generates a summary of recent repos, commits, a
 Demonstrates API integration, authenticated requests, and data aggregation across multiple endpoints.
 
 **Planned Steps:**
+
 1. **fetch-repos** (fetch-worker): GET /user/repos (authenticated)
 2. **fetch-commits** (fetch-worker): GET recent commits for active repos
 3. **summarize-activity** (ai-worker): Create readable summary with insights
 
 **Expected Output:**
+
 ```markdown
 # GitHub Activity Summary
 
@@ -254,6 +270,7 @@ Primary languages: TypeScript (65%), PowerShell (20%), Markdown (15%)
 ```
 
 **Learning Points:**
+
 - ✅ API authentication (GitHub token)
 - ✅ Multiple fetch-worker calls
 - ✅ Data aggregation across endpoints
@@ -275,6 +292,7 @@ Comprehensive morning briefing combining weather, news, calendar, and priorities
 Showcases complex workflow with parallel tasks, dependency chains, and real-world utility.
 
 **Planned Steps:**
+
 ```
 ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
 │   Weather   │   │    News     │   │  Calendar   │
@@ -303,6 +321,7 @@ Showcases complex workflow with parallel tasks, dependency chains, and real-worl
 3. **Generation:** create-briefing (waits for aggregation)
 
 **Expected Output:**
+
 ```markdown
 # Morning Brief - January 29, 2026
 
@@ -330,6 +349,7 @@ Based on your calendar and deadlines:
 ```
 
 **Learning Points:**
+
 - ✅ Complex workflow orchestration
 - ✅ Parallel task execution
 - ✅ Dependency chain management
@@ -412,6 +432,7 @@ conductor logs <plan-id>
 ### Wrong output format
 
 Make sure `output.format` in the workload matches what you expect:
+
 - `markdown` - Rich text with formatting
 - `json` - Structured data
 - `text` - Plain text
@@ -419,11 +440,13 @@ Make sure `output.format` in the workload matches what you expect:
 ### AI worker timeout
 
 Some examples may take longer depending on:
+
 - Model selected (claude-opus is slower than haiku)
 - Prompt complexity
 - Current API load
 
 You can adjust timeout in the workload config:
+
 ```yaml
 config:
   timeout: 120  # seconds

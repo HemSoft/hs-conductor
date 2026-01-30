@@ -15,23 +15,29 @@ The following files have exclusive ownership and must NOT be modified directly:
 ## Guiding Principles
 
 ### Simplicity Over Cleverness
+
 Use the simplest tool that accomplishes the task. Don't reach for complex solutions when simple ones suffice. Prefer explicit, readable code over clever abstractions.
 
 ### AI as a Last Resort
+
 Only invoke AI when the task genuinely requires:
+
 - Reasoning or decision-making
 - Natural language understanding
 - Content generation or transformation
 - Pattern recognition beyond simple regex
 
 DO NOT use AI for:
+
 - Executing scripts or commands
 - Simple data fetching
 - File I/O operations
 - Deterministic transformations
 
 ### Composable Primitives
+
 Build complex workflows from simple, single-purpose workers:
+
 - **exec-worker**: Run commands and executables (PowerShell, bash, .exe)
 - **fetch-worker**: HTTP requests and API calls
 - **file-worker**: File system operations
@@ -40,18 +46,22 @@ Build complex workflows from simple, single-purpose workers:
 Each worker should do one thing well. Combine them in `task` or `workflow` definitions.
 
 ### Clean Architecture
+
 - **One method, one concern**: Each function should have a single, well-defined purpose
 - **One class, a few concerns**: Classes should be cohesive but not overloaded
 - **Separation of concerns**: Keep business logic, I/O, and orchestration separate
 - **Small, focused files**: If a file exceeds 200-300 lines, consider splitting it
 
 ### Explicit Worker Selection
+
 The workload definition should make it obvious which workers are involved:
+
 - `ad-hoc`: Quick AI prompts (use sparingly for genuinely simple AI tasks)
 - `task`: Sequential steps with explicit worker assignment
 - `workflow`: Complex orchestration with dependencies
 
 ### Cost Consciousness
+
 LLM tokens are a resource. Prefer deterministic workers (exec, fetch, file) for tasks that don't require intelligence. Track token usage and optimize prompts.
 
 ## Architecture
@@ -67,6 +77,7 @@ LLM tokens are a resource. Prefer deterministic workers (exec, fetch, file) for 
 The SDK is **agentic** - it expects to use tools to accomplish tasks. Key patterns:
 
 ### Tool Definition (JSON Schema Required)
+
 ```typescript
 // MUST use raw JSON Schema - Zod schemas don't have toJSONSchema()
 const myTool: Tool<{ arg: string }> = {
@@ -86,6 +97,7 @@ const myTool: Tool<{ arg: string }> = {
 ```
 
 ### Session Configuration
+
 ```typescript
 const session = await client.createSession({
   model: 'claude-sonnet-4.5', // or 'gpt-4o'
@@ -98,6 +110,7 @@ const session = await client.createSession({
 ```
 
 ### Response Capture Pattern
+
 - Define a `complete_task` tool for the agent to call with its response
 - Use global state to capture tool invocation results
 - Check `isTaskCompleted()` after `sendAndWait()` completes
@@ -105,22 +118,26 @@ const session = await client.createSession({
 ## Code Patterns
 
 ### Event Definitions
+
 - Define events in `src/inngest/events.ts` with Zod schemas
 - Use `EVENTS` constant for event names: `EVENTS.TASK_READY`, `EVENTS.TASK_COMPLETED`
 - Export inferred types: `export type TaskReadyEvent = z.infer<typeof TaskReadySchema>`
 
 ### Workers (Inngest Functions)
+
 - Create workers with `inngest.createFunction()` in `src/workers/`
 - Filter by worker type: `if: 'event.data.worker == "ai-worker"'`
 - Use `step.run()` for all side effects (file I/O, API calls)
 - Emit events via `step.sendEvent()`, not direct `inngest.send()`
 
 ### File Storage
+
 - Use `src/lib/file-storage.ts` helpers: `readAsset()`, `writeResult()`, `updateTaskStatus()`
 - Assets stored as JSON in `data/runs/{planId}/assets/`
 - Results stored in `data/runs/{planId}/results/`
 
 ### Types
+
 - Define all types in `src/types/plan.ts`
 - Use string literal unions for status: `type TaskStatus = 'pending' | 'ready' | 'running'`
 - Worker types: `'exec-worker' | 'fetch-worker' | 'file-worker' | 'ai-worker'`
