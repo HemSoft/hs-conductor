@@ -20,9 +20,10 @@
 
 ## Prerequisites
 
-- Node.js 22+ with npm (required for Copilot CLI installation)
-- Bun 1.2+ (runtime for the conductor application)
-- GitHub Copilot CLI (`copilot` command) installed and authenticated
+- **Node.js 22+** with npm (required for installing Copilot CLI)
+- **Git** (for cloning the repository)
+- **Bun 1.2+** (runtime for the conductor application)
+- **GitHub Copilot CLI** (AI inference)
   - Install: `npm install -g @github/copilot-cli`
   - Authenticate: `copilot auth`
 
