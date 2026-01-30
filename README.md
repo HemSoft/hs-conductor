@@ -41,8 +41,6 @@ cd hs-conductor
 
 ### 2. Start Infrastructure
 
-### 2. Start Infrastructure
-
 ```powershell
 # Start self-hosted Inngest with Postgres + Redis
 docker compose up -d
@@ -94,6 +92,10 @@ curl -X POST http://localhost:2900/run/news-digest
 
 ### 6
 ## Architecture
+. Monitor
+
+- **Inngest Dashboard**: http://localhost:2901
+- **Plan Status**: Check execution logs in the terminal
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
