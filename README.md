@@ -20,8 +20,11 @@
 
 ## Prerequisites
 
-- Bun 1.2+
+- Node.js 22+ with npm (required for Copilot CLI installation)
+- Bun 1.2+ (runtime for the conductor application)
 - GitHub Copilot CLI (`copilot` command) installed and authenticated
+  - Install: `npm install -g @github/copilot-cli`
+  - Authenticate: `copilot auth`
 
 ## Quick Start
 
