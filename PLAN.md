@@ -1151,7 +1151,7 @@ INNGEST_SIGNING_KEY=your-signing-key-here
 INNGEST_BASE_URL=http://localhost:2901
 INNGEST_DEV=0
 
-# GitHub Copilot SDK (uses your authenticated `gh` CLI)
+# GitHub Copilot SDK (uses Copilot CLI authentication)
 # No API key needed - uses existing Copilot subscription
 COPILOT_MODEL=claude-sonnet-4.5
 

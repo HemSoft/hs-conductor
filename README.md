@@ -21,8 +21,7 @@
 ## Prerequisites
 
 - Bun 1.2+
-- GitHub account with Copilot access (Free tier includes 50 requests/month; Pro ($10/mo) offers unlimited usage)
-- GitHub CLI (`gh`) authenticated
+- GitHub Copilot CLI (`copilot` command) installed and authenticated
 
 ## Quick Start
 
@@ -153,11 +152,10 @@ bun run dev
 
 The AI Worker uses GitHub Copilot SDK, which requires:
 
-1. **Copilot Subscription**: Pro, Pro+, Business, or Enterprise
-2. **GitHub CLI**: Authenticated with `gh auth login`
-3. **Copilot CLI**: Available in PATH
+1. **Copilot CLI**: Install via `npm install -g @github/copilot-cli`  
+2. **Authentication**: Run `copilot auth` to authenticate (or use VS Code Copilot extension)
 
-No API keys needed - uses your existing Copilot authentication.
+No API keys or paid subscription required - works with the free Copilot tier (50 requests/month) or any paid plan.
 
 ### Available Models
 
