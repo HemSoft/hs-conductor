@@ -20,21 +20,20 @@
 
 | Layer | Technology | Notes |
 |-------|------------|-------|
-| Runtime | Node.js 22+ | TypeScript with ESM |
+| Runtime | Bun 1.2+ | TypeScript with ESM |
 | CLI Framework | Commander.js | Standard HemSoft CLI |
-| Event Bus | **Inngest (Self-Hosted)** | Docker Compose with Postgres + Redis |
-| HTTP Client | fetch | Native Node.js fetch for RSS/API |
+| Event Bus | **Inngest Dev Server** | npx inngest-cli (local development) |
+| HTTP Client | fetch | Native fetch for RSS/API |
 | AI Integration | **GitHub Copilot SDK** | Enterprise-grade AI via Copilot subscription |
 | File Storage | Local filesystem | JSON + Markdown |
 | UI | chalk, boxen, ora, cli-table3 | Standard HemSoft CLI styling |
 
-### Infrastructure (Self-Hosted)
+### Development Infrastructure
 
-| Component | Image | Purpose |
-|-----------|-------|---------|
-| Inngest Server | `inngest/inngest:latest` | Event orchestration, dashboard |
-| PostgreSQL 17 | `postgres:17-alpine` | Config & history persistence |
-| Redis 7 | `redis:7-alpine` | Queue & state store |
+| Component | Invocation | Purpose |
+|-----------|------------|----------|
+| Inngest Dev Server | `npx inngest-cli dev` | Event orchestration, dashboard (port 2901) |
+| Express App | `bun run src/index.ts` | Inngest worker host (port 2900) |
 
 ---
 

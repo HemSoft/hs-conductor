@@ -1,13 +1,11 @@
 # Port Configuration
 
-## hs-cli-conductor Port Range: 2900-2909
+## hs-conductor Port Range: 2900-2909
 
 | Port | Service | Description |
 |------|---------|-------------|
 | **2900** | Express App | Function host - serves Inngest workers |
-| **2901** | Inngest Server | Event orchestrator + Dashboard |
-| **5432** | PostgreSQL | Inngest persistence (internal) |
-| **6379** | Redis | Inngest queue/state (internal) |
+| **2901** | Inngest Dev Server | Event orchestrator + Dashboard (npx inngest-cli) |
 
 ## Endpoints
 

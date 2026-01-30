@@ -39,17 +39,7 @@ cd hs-conductor
 .\setup.ps1
 ```
 
-### 2. Start Infrastructure
-
-```powershell
-# Start self-hosted Inngest with Postgres + Redis
-docker compose up -d
-
-# Verify services are running
-docker compose ps
-```
-
-### 3. Configure Environment
+### 2. Configure Environment
 
 ```powershell
 # Copy example config
@@ -61,10 +51,10 @@ openssl rand -hex 32  # Use for INNGEST_SIGNING_KEY
 
 Edit `.env` with your keys.
 
-### 4. Start Development
+### 3. Start Development
 
 ```powershell
-# In terminal 1: Start the conductor server
+# Start the conductor server (includes Inngest dev server)
 bun run dev
 
 # In terminal 2: Run a plan
@@ -109,8 +99,8 @@ curl -X POST http://localhost:2900/run/news-digest
 │   conductor list         conductor/task.completed               │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │           SELF-HOSTED INNGEST (Docker)                  │   │
-│   │   inngest:8288 → postgres:5432 ← redis:6379             │   │
+│   │         INNGEST DEV SERVER (npx inngest-cli)            │   │
+│   │                   localhost:2901                        │   │
 │   └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │   Workers                                                       │
@@ -134,19 +124,17 @@ curl -X POST http://localhost:2900/run/news-digest
 
 ## Infrastructure
 
-### Docker Services
+The conductor runs with minimal external dependencies:
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Inngest | 8288, 8289 | Event orchestration + Dashboard |
-| PostgreSQL | 5432 | Config & history persistence |
-| Redis | 6379 | Queue & state store |
+- **Inngest Dev Server**: Runs via `npx inngest-cli dev` on port 2901 (auto-started by `run.ps1`)
+- **Express App**: Bun server on port 2900 hosting Inngest workers
+- **File Storage**: Local filesystem for plans, results, and workload definitions
 
-### Docker Commands
+### Development Commands
 
 ```powershell
-# Start all services
-docker compose up -d
+# Start everything (Inngest + Express)
+bun run dev
 
 # View logs
 docker compose logs -f inngest
