@@ -21,7 +21,12 @@
 ## Prerequisites
 
 - **Node.js 22+** with npm (required for installing Copilot CLI)
+  - Install: Download from [nodejs.org](https://nodejs.org/) or use a version manager like [nvm](https://github.com/nvm-sh/nvm)
+  - Verify: `node --version` and `npm --version`
 - **Bun 1.2+** (runtime for the conductor application)
+  - Install (Windows): `powershell -c "irm bun.sh/install.ps1 | iex"`
+  - Install (macOS/Linux): `curl -fsSL https://bun.sh/install | bash`
+  - Verify: `bun --version`
 - **GitHub Copilot CLI** (AI inference)
   - Install: `npm install -g @github/copilot-cli`
   - Authenticate: `copilot auth`
