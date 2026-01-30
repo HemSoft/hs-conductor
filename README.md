@@ -21,7 +21,7 @@
 ## Prerequisites
 
 - Bun 1.2+
-- GitHub Copilot subscription (Pro, Pro+, Business, or Enterprise)
+- GitHub account with Copilot access (Free tier includes 50 requests/month; Pro ($10/mo) offers unlimited usage)
 - GitHub CLI (`gh`) authenticated
 
 ## Quick Start
