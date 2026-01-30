@@ -1,7 +1,7 @@
 {
   "name": "@hemsoft/conductor",
   "version": "0.1.0",
-  "description": "Event-driven multi-agent orchestration with self-hosted Inngest",
+  "description": "Event-driven multi-agent orchestration with Inngest",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -16,10 +16,7 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist",
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f inngest"
+    "clean": "rimraf dist"
   },
   "keywords": [
     "inngest",

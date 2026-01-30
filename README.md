@@ -1,6 +1,6 @@
 # hs-conductor
 
-> Event-Driven Multi-Agent Orchestration with Self-Hosted Inngest
+> Event-Driven Multi-Agent Orchestration with Inngest
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.2+-f472b6.svg)](https://bun.sh/)
@@ -9,11 +9,10 @@
 
 ## Overview
 
-`hs-conductor` is an event-driven multi-agent orchestration system that uses self-hosted Inngest for workflow management and GitHub Copilot SDK for AI inference.
+`hs-conductor` is an event-driven multi-agent orchestration system that uses Inngest for workflow management and GitHub Copilot SDK for AI inference.
 
 ## Features
 
-- **Self-Hosted Inngest**: Full control over your workflow infrastructure
 - **GitHub Copilot SDK**: Enterprise-grade AI through your existing Copilot subscription
 - **Event-Driven Architecture**: Parallel task execution with dependency resolution
 - **File-Based State**: Markdown plans with JSON assets
@@ -22,7 +21,6 @@
 ## Prerequisites
 
 - Bun 1.2+
-- Docker & Docker Compose
 - GitHub Copilot subscription (Pro, Pro+, Business, or Enterprise)
 - GitHub CLI (`gh`) authenticated
 
@@ -92,7 +90,7 @@ curl -X POST http://localhost:2900/run/news-digest
 │                      hs-conductor                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│   CLI Commands           Inngest Functions (Self-Hosted)        │
+│   CLI Commands           Inngest Functions                      │
 │   ──────────────         ─────────────────────────────          │
 │   conductor run     ──►  conductor/plan.created                 │
 │   conductor status       conductor/task.ready                   │
@@ -136,14 +134,7 @@ The conductor runs with minimal external dependencies:
 # Start everything (Inngest + Express)
 bun run dev
 
-# View logs
-docker compose logs -f inngest
-
-# Stop services
-docker compose down
-
-# Reset (destroy volumes)
-docker compose down -v
+# Stop with Ctrl+C or close the terminal
 ```
 
 ## Configuration
@@ -154,7 +145,7 @@ docker compose down -v
 |----------|-------------|---------|
 | `INNGEST_EVENT_KEY` | Event key for authentication | Required |
 | `INNGEST_SIGNING_KEY` | Signing key (hex, 32 bytes) | Required |
-| `INNGEST_BASE_URL` | Self-hosted Inngest URL | `http://localhost:8288` |
+| `INNGEST_BASE_URL` | Inngest dev server URL | `http://localhost:2901` |
 | `COPILOT_MODEL` | Default AI model | `claude-sonnet-4.5` |
 | `CONDUCTOR_DATA_PATH` | Data directory | `./data` |
 
@@ -208,10 +199,9 @@ bun run format
 
 ```
 hs-conductor/
-├── docker-compose.yml      # Self-hosted Inngest infrastructure
 ├── src/
 │   ├── inngest/
-│   │   ├── client.ts       # Inngest client (self-hosted)
+│   │   ├── client.ts       # Inngest client configuration
 │   │   └── events.ts       # Event definitions
 │   ├── workers/
 │   │   └── ai-worker.ts    # AI worker (Copilot SDK)

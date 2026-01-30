@@ -54,7 +54,7 @@
 │                                                                         │
 │   ┌─────────────────────────────────────────────────────────────────┐   │
 │   │                     INNGEST DEV SERVER                          │   │
-│   │   http://localhost:8288                                         │   │
+│   │   http://localhost:2901                                         │   │
 │   └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 │   Workers (Inngest Functions)                                           │
@@ -184,12 +184,12 @@ git init
 }
 ```
 
-**Docker Setup:**
+**Development Setup:**
 ```powershell
-# Start self-hosted Inngest infrastructure
-docker compose up -d
+# Start Inngest dev server and Express app
+bun run dev
 
-# View Inngest dashboard at http://localhost:8288
+# View Inngest dashboard at http://localhost:2901
 ```
 
 ---
@@ -815,7 +815,7 @@ export async function runCommand(templateName: string, options: RunOptions) {
 
     console.log('');
     console.log(chalk.dim('Check status with:'), chalk.cyan(`conductor status ${planId}`));
-    console.log(chalk.dim('View Inngest dashboard:'), chalk.cyan('http://localhost:8288'));
+    console.log(chalk.dim('View Inngest dashboard:'), chalk.cyan('http://localhost:2901'));
 
   } catch (error) {
     spinner.fail('Failed to run plan');
@@ -944,7 +944,7 @@ export async function devCommand(options: DevOptions) {
   console.log(chalk.green('Development environment ready!'));
   console.log('');
   console.log(chalk.dim('Conductor API:'), chalk.cyan(`http://localhost:${port}/api/inngest`));
-  console.log(chalk.dim('Inngest Dashboard:'), chalk.cyan('http://localhost:8288'));
+  console.log(chalk.dim('Inngest Dashboard:'), chalk.cyan('http://localhost:2901'));
   console.log('');
   console.log(chalk.dim('Run a plan:'), chalk.cyan('conductor run TODAYS-NEWS'));
 }
@@ -1025,7 +1025,7 @@ Fetches news from multiple sources, aggregates, deduplicates, and produces a dai
 #### 6.1 Manual Testing Checklist
 
 - [ ] Start dev environment: `conductor dev`
-- [ ] Verify Inngest dashboard accessible at http://localhost:8288
+- [ ] Verify Inngest dashboard accessible at http://localhost:2901
 - [ ] Run plan: `conductor run TODAYS-NEWS`
 - [ ] Verify TASK-001, 002, 003 start in parallel
 - [ ] Verify TASK-004 waits for all three to complete
@@ -1145,10 +1145,10 @@ Create compelling examples that showcase capabilities:
 ### Environment Variables
 
 ```bash
-# Self-hosted Inngest (generate with: openssl rand -hex 32)
+# Inngest (generate with: openssl rand -hex 32)
 INNGEST_EVENT_KEY=your-event-key-here
 INNGEST_SIGNING_KEY=your-signing-key-here
-INNGEST_BASE_URL=http://localhost:8288
+INNGEST_BASE_URL=http://localhost:2901
 INNGEST_DEV=0
 
 # GitHub Copilot SDK (uses your authenticated `gh` CLI)

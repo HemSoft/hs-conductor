@@ -85,9 +85,8 @@ Write-Host "==================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor White
 Write-Host "  1. Edit .env and configure your environment" -ForegroundColor Gray
-Write-Host "  2. Start Docker: docker compose up -d" -ForegroundColor Gray
-Write-Host "  3. Run: .\run.ps1" -ForegroundColor Gray
-Write-Host "  4. Try example: bun run dev (then in another terminal: conductor run joke)" -ForegroundColor Gray
+Write-Host "  2. Run: .\run.ps1" -ForegroundColor Gray
+Write-Host "  3. Try example workloads from workloads-demo/" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Documentation:" -ForegroundColor White
 Write-Host "  - README.md - Getting started guide" -ForegroundColor Gray

@@ -1,6 +1,6 @@
 # Copilot Instructions for hs-conductor
 
-This project is an event-driven multi-agent orchestration system built with self-hosted Inngest, Bun runtime, and GitHub Copilot SDK for AI inference.
+This project is an event-driven multi-agent orchestration system built with Inngest, Bun runtime, and GitHub Copilot SDK for AI inference.
 
 ## Guiding Principles
 
@@ -47,7 +47,7 @@ LLM tokens are a resource. Prefer deterministic workers (exec, fetch, file) for 
 ## Architecture
 
 - **Runtime**: Bun 1.2+ (ES2022 modules, `type: "module"`)
-- **Event Orchestration**: Self-hosted Inngest (local dev via `npx inngest-cli dev`)
+- **Event Orchestration**: Inngest (local dev via `npx inngest-cli dev`)
 - **AI**: GitHub Copilot SDK (`@github/copilot-sdk`) - uses your Copilot subscription
 - **State**: File-based (Markdown plans, JSON assets in `data/runs/`)
 - **Ports**: App server 2900, Inngest dashboard 2901
