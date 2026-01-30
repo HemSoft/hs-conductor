@@ -587,16 +587,51 @@
   background-color: rgba(255, 200, 0, 0.15);
 }
 
-.item-icon.spinning {
+/* Stable CSS spinner */
+.item-icon .spinner-circle {
   display: inline-block;
-  animation: spin 1s linear infinite;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #4fc3f7;
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
+@keyframes spinner-rotate {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Validation error/warning indicators */
+.tree-item.has-error {
+  background-color: rgba(241, 76, 76, 0.1);
+}
+
+.tree-item.has-error:hover {
+  background-color: rgba(241, 76, 76, 0.15);
+}
+
+.tree-item.has-warning {
+  background-color: rgba(255, 200, 0, 0.08);
+}
+
+.tree-item.has-warning:hover {
+  background-color: rgba(255, 200, 0, 0.12);
+}
+
+.validation-indicator {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0 4px;
+}
+
+.validation-indicator.error {
+  color: #f14c4c;
+}
+
+.validation-indicator.warning {
+  color: #cca700;
 }

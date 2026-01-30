@@ -294,6 +294,32 @@
 }
 
 /* Save button and modified indicator */
+/* Edit button - secondary action */
+.edit-btn {
+  background-color: transparent;
+  border: 1px solid #858585;
+  color: #cccccc;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #cccccc;
+  color: #ffffff;
+}
+
+.edit-btn:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
 .save-btn {
   background-color: #388a34;
   border: none;
@@ -349,6 +375,81 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Validation error badge in toolbar */
+.validation-error-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background-color: rgba(241, 76, 76, 0.2);
+  color: #f48771;
+  cursor: help;
+}
+
+/* Validation Problems Panel */
+.validation-panel {
+  background-color: #1e1e1e;
+  border-top: 1px solid #f14c4c;
+  max-height: 150px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #252526;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f48771;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+}
+
+.validation-icon {
+  font-size: 14px;
+}
+
+.validation-list {
+  padding: 4px 0;
+}
+
+.validation-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #cccccc;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.validation-item:hover {
+  background-color: #2a2d2e;
+}
+
+.error-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.error-message {
+  flex: 1;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #f48771;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.error-location {
+  font-size: 11px;
+  color: #858585;
+  flex-shrink: 0;
 }
 
 /* File tabs for multi-file results */

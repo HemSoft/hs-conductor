@@ -8,8 +8,7 @@ This folder contains runtime data for hs-conductor.
 data/
 ├── runs/       # 🔒 Execution results (gitignored)
 ├── schedules/  # 🔒 Cron schedules (gitignored) 
-├── alerts/     # 🔒 Alert history (gitignored)
-└── templates/  # ⚠️  Legacy - use workloads/ instead
+└── alerts/     # 🔒 Alert history (gitignored)
 ```
 
 ## What Gets Stored Where
@@ -45,13 +44,6 @@ Each schedule is a JSON file defining when a workload should run:
 **Gitignored** - Alert history and notification logs
 
 Stores records of triggered alerts from workload executions.
-
-### templates/
-**⚠️ Deprecated** - Legacy template system
-
-This was from an older architecture. New workloads should be created in:
-- `workloads-demo/` for examples (checked into git)
-- `workloads/` for personal use (gitignored)
 
 ## Privacy & Backup
 

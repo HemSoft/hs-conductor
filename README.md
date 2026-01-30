@@ -107,6 +107,34 @@ curl -X POST http://localhost:2900/run/news-digest
 ```
 
 ### 6
+## Keyboard Shortcuts
+
+The admin UI supports various keyboard shortcuts across different contexts:
+
+### Global
+
+| Shortcut | Action |
+|----------|--------|
+| `F11` | Toggle fullscreen mode |
+
+### YAML Editor (when editing a workload)
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+S` / `Cmd+S` | Save changes to the workload |
+
+### Result View (when viewing run results)
+
+| Shortcut | Action |
+|----------|--------|
+| `Escape` | Close embedded web view (when browsing links) |
+
+### Workload Editor Modal
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Add tag (when focused on tag input field) |
+
 ## Architecture
 . Monitor
 
@@ -236,10 +264,10 @@ hs-conductor/
 │   │   └── file-storage.ts # Plan & asset storage
 │   └── types/
 │       └── plan.ts         # TypeScript definitions
-├── data/
-│   ├── templates/          # Plan templates
-│   └── runs/               # Execution instances
-└── PLAN.md                 # Implementation plan
+└── data/
+    ├── runs/               # Execution instances
+    ├── schedules/          # Cron schedules
+    └── alerts/             # Alert history
 ```
 
 ## License

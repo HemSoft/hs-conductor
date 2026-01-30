@@ -22,6 +22,23 @@ const WORKLOAD_PATHS = [
 // Cache loaded workloads
 let workloadCache: Map<string, WorkloadDefinition> | null = null;
 
+// Track validation errors for each workload file
+export interface WorkloadError {
+  file: string;
+  errors: string[];
+  warnings: string[];
+}
+let validationErrors: WorkloadError[] = [];
+
+/**
+ * Get all validation errors from the last load
+ */
+export function getValidationErrors(): WorkloadError[] {
+  // Ensure workloads are loaded first
+  loadWorkloads();
+  return validationErrors;
+}
+
 /**
  * Load all workloads from YAML files
  * Searches both personal (workloads/) and demo (workloads-demo/) directories
@@ -33,6 +50,7 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
   }
 
   workloadCache = new Map();
+  validationErrors = [];
 
   const categories = ['ad-hoc', 'tasks', 'workflows'];
 
@@ -60,6 +78,11 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
 
           if (!validation.success) {
             console.error(validation.error);
+            validationErrors.push({
+              file: filePath,
+              errors: [validation.error],
+              warnings: [],
+            });
             continue;
           }
 
@@ -69,9 +92,13 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
           const expectedType =
             category === 'ad-hoc' ? 'ad-hoc' : category === 'tasks' ? 'task' : 'workflow';
           if (workload.type !== expectedType) {
-            console.warn(
-              `Warning: ${file} has type "${workload.type}" but is in ${category}/ directory (expected "${expectedType}")`
-            );
+            const warning = `Warning: ${file} has type "${workload.type}" but is in ${category}/ directory (expected "${expectedType}")`;
+            console.warn(warning);
+            validationErrors.push({
+              file: filePath,
+              errors: [],
+              warnings: [warning],
+            });
           }
 
           // Store with source info (for debugging)
@@ -92,6 +119,7 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
  */
 export function reloadWorkloads(): void {
   workloadCache = null;
+  validationErrors = [];
   loadWorkloads();
 }
 
@@ -136,13 +164,5 @@ export function getWorkloadPath(id: string): string | undefined {
     }
   }
   
-  return undefined
-  const categoryMap = {
-    'ad-hoc': 'ad-hoc',
-    task: 'tasks',
-    workflow: 'workflows',
-  };
-
-  const category = categoryMap[workload.type];
-  return join(WORKLOADS_DIR, category, `${id}.yaml`);
+  return undefined;
 }

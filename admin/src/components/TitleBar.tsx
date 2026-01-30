@@ -64,9 +64,9 @@ export function TitleBar({ onReload, onFullScreen }: TitleBarProps) {
       label: 'Help',
       items: [
         { 
-          label: 'About hs-cli-conductor', 
+          label: 'About hs-conductor', 
           action: () => {
-            alert('hs-cli-conductor Admin\n\nEvent-Driven Multi-Agent Orchestration\nVersion 0.1.0');
+            alert('hs-conductor Admin\n\nEvent-Driven Multi-Agent Orchestration\nVersion 0.1.0');
           }
         }
       ]
@@ -136,7 +136,7 @@ export function TitleBar({ onReload, onFullScreen }: TitleBarProps) {
         <span className="title-brand">HemSoft Developments</span>
         <span className="title-separator">—</span>
         <span className="title-product">Conductor</span>
-        <span className="title-version">V1.0</span>
+        <span className="title-version">V0.1.0</span>
       </div>
     </div>
   );

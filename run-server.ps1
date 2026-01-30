@@ -1,20 +1,19 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Starts hs-cli-conductor: Inngest Dev + Server + Admin app
+    Starts hs-conductor backend: Inngest Dev + Server
 
 .DESCRIPTION
-    Launches the full stack:
-    - Inngest dev server (port 2901) - auto-discovers and syncs functions
+    Launches the backend services:
     - Backend server (port 2900)
-    - Admin app (port 5173)
+    - Inngest dev server (port 2901) - auto-discovers and syncs functions
 
 .PARAMETER NoInngest
     Skip starting Inngest dev server (use if already running)
 
 .EXAMPLE
-    ./run.ps1
-    ./run.ps1 -NoInngest
+    ./run-server.ps1
+    ./run-server.ps1 -NoInngest
 #>
 
 param(
@@ -40,7 +39,7 @@ function Write-Success { Write-Host "[OK]" -ForegroundColor $SuccessColor -NoNew
 function Write-Error-Custom { Write-Host "[ERR]" -ForegroundColor $ErrorColor -NoNewline; Write-Host " $args" }
 function Write-Warning-Custom { Write-Host "[!]" -ForegroundColor $WarningColor -NoNewline; Write-Host " $args" }
 
-Write-Info "Starting hs-conductor..."
+Write-Info "Starting hs-conductor server..."
 Write-Host ""
 
 # Check if Bun is installed
@@ -53,17 +52,10 @@ Write-Success "Bun detected: v$bunVersion"
 
 # Save current directory
 $rootDir = (Get-Location).Path
-$adminDir = Join-Path $rootDir "admin"
-
-# Verify directories exist
-if (-not (Test-Path $adminDir)) {
-    Write-Error-Custom "Admin directory not found: $adminDir"
-    exit 1
-}
 
 # Kill any existing processes on our ports
 Write-Info "Cleaning up any existing processes..."
-$portsToCheck = @(2900, 2901, 5173)
+$portsToCheck = @(2900, 2901)
 foreach ($port in $portsToCheck) {
     $connections = netstat -ano | Select-String ":$port.*LISTENING"
     if ($connections) {
@@ -113,15 +105,9 @@ if (-not $NoInngest) {
     Write-Info "Skipping Inngest (--NoInngest flag)"
 }
 
-# Start admin app
-Write-Info "Starting admin app on port 5173..."
-$adminProc = Start-Process -FilePath "bun" -ArgumentList "run", "dev" -WorkingDirectory $adminDir -PassThru -NoNewWindow
-$processes += $adminProc
-
-Write-Success "All services started"
+Write-Success "Server services started"
 Write-Host ""
 Write-Host "  Server:    http://localhost:2900" -ForegroundColor $InfoColor
-Write-Host "  Admin:     http://localhost:5173" -ForegroundColor $InfoColor
 if (-not $NoInngest) {
     Write-Host "  Inngest:   http://localhost:2901" -ForegroundColor $InfoColor
 }

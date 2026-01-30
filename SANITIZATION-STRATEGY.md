@@ -64,8 +64,7 @@ workloads/                 # ❌ Gitignored - your private workloads
 data/
 ├── runs/                  # ❌ Gitignored - execution data
 ├── schedules/             # ❌ Gitignored - personal schedules
-├── alerts/                # ❌ Gitignored - personal alerts
-└── templates/             # ⚠️  Legacy - use workloads/ instead
+└── alerts/                # ❌ Gitignored - personal alerts
 ```
 
 ### How It Works
@@ -289,7 +288,6 @@ Create new example workloads:
 - [ ] Update README.md with Quick Start and Examples table
 - [ ] Create EXAMPLES.md with detailed workload guides
 - [ ] Create CONTRIBUTING.md with custom workload guide
-- [ ] Update PLAN.md to reference new structure
 - [ ] Add architecture diagrams (Mermaid)
 - [ ] Record demo GIFs for top 3 examples
 
@@ -397,7 +395,6 @@ All stored in `workloads-demo/` and ready for users to copy. backup
 
 ## Questions to Resolve
 
-- [ ] Should `data/templates/` be renamed to avoid confusion with "template workloads"?
 - [ ] Do we want a `workloads/community/` folder for third-party examples?
 - [ ] Should personal workloads support auto-migration from old structure?
 - [ ] Do we need a "personal config" file separate from `.env`?

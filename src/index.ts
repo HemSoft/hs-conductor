@@ -14,7 +14,9 @@ import { execWorker } from './workers/exec-worker.js';
 import { fetchWorker } from './workers/fetch-worker.js';
 import { planOrchestrator, taskProgressHandler } from './workers/task-manager.js';
 import { schedulerWorker, scheduledWorkloadHandler } from './workers/scheduler.js';
-import { listWorkloads, getWorkload, reloadWorkloads, getWorkloadPath } from './lib/workload-loader.js';
+import { listWorkloads, getWorkload, reloadWorkloads, getWorkloadPath, getValidationErrors } from './lib/workload-loader.js';
+import { validateWorkload } from './types/workload-schemas.js';
+import YAML from 'yaml';
 import { executeWorkload } from './lib/executor.js';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { CronExpressionParser } from 'cron-parser';
@@ -45,15 +47,37 @@ app.get('/health', (_req, res) => {
 // List all workloads
 app.get('/workloads', (_req, res) => {
   const all = listWorkloads();
+  const validationErrors = getValidationErrors();
+  
+  // Build a map of file path -> errors for quick lookup
+  const errorsByFile = new Map<string, { errors: string[]; warnings: string[] }>();
+  for (const ve of validationErrors) {
+    errorsByFile.set(ve.file, { errors: ve.errors, warnings: ve.warnings });
+  }
+  
   res.json(
-    all.map((w) => ({
-      id: w.id,
-      name: w.name,
-      type: w.type,
-      description: w.description,
-      tags: w.tags,
-    }))
+    all.map((w) => {
+      // Find validation issues for this workload
+      const path = getWorkloadPath(w.id);
+      const issues = path ? errorsByFile.get(path) : undefined;
+      
+      return {
+        id: w.id,
+        name: w.name,
+        type: w.type,
+        description: w.description,
+        tags: w.tags,
+        validationErrors: issues?.errors,
+        validationWarnings: issues?.warnings,
+      };
+    })
   );
+});
+
+// Get all validation errors (including files that failed to load)
+app.get('/workloads/errors', (_req, res) => {
+  const errors = getValidationErrors();
+  res.json(errors);
 });
 
 // Get workload details
@@ -78,12 +102,46 @@ app.get('/workloads/:id', (req, res) => {
   res.json({ ...workload, yaml });
 });
 
+// Validate workload YAML without saving
+app.post('/workloads/:id/validate', (req, res) => {
+  const { yaml: yamlContent } = req.body;
+  
+  if (!yamlContent || typeof yamlContent !== 'string') {
+    res.status(400).json({ error: 'YAML content required' });
+    return;
+  }
+  
+  // Parse YAML
+  let parsed;
+  try {
+    parsed = YAML.parse(yamlContent);
+  } catch (parseError) {
+    res.status(400).json({
+      error: 'Invalid YAML syntax',
+      details: parseError instanceof Error ? parseError.message : 'Parse error'
+    });
+    return;
+  }
+  
+  // Validate against schema
+  const validation = validateWorkload(parsed, 'workload.yaml');
+  if (!validation.success) {
+    res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error
+    });
+    return;
+  }
+  
+  res.json({ valid: true });
+});
+
 // Update workload YAML
 app.put('/workloads/:id', (req, res) => {
   const { id } = req.params;
-  const { yaml } = req.body;
+  const { yaml: yamlContent } = req.body;
   
-  if (!yaml || typeof yaml !== 'string') {
+  if (!yamlContent || typeof yamlContent !== 'string') {
     res.status(400).json({ error: 'YAML content required' });
     return;
   }
@@ -94,8 +152,30 @@ app.put('/workloads/:id', (req, res) => {
     return;
   }
   
+  // Parse and validate the YAML
+  let parsed;
   try {
-    writeFileSync(yamlPath, yaml, 'utf-8');
+    parsed = YAML.parse(yamlContent);
+  } catch (parseError) {
+    res.status(400).json({
+      error: 'Invalid YAML syntax',
+      details: parseError instanceof Error ? parseError.message : 'Parse error'
+    });
+    return;
+  }
+  
+  // Validate against schema
+  const validation = validateWorkload(parsed, `${id}.yaml`);
+  if (!validation.success) {
+    res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error
+    });
+    return;
+  }
+  
+  try {
+    writeFileSync(yamlPath, yamlContent, 'utf-8');
     // Reload workloads to pick up changes
     reloadWorkloads();
     res.json({ success: true, message: 'Workload saved' });
@@ -109,46 +189,64 @@ app.put('/workloads/:id', (req, res) => {
 
 // Create a new workload
 app.post('/workloads', (req, res) => {
-  const { yaml } = req.body;
+  const { yaml: yamlContent } = req.body;
   
-  if (!yaml || typeof yaml !== 'string') {
+  if (!yamlContent || typeof yamlContent !== 'string') {
     res.status(400).json({ error: 'YAML content required' });
     return;
   }
   
+  // Parse YAML to get id and type
+  let parsed;
   try {
-    // Parse YAML to get id and type
-    const YAML = require('yaml');
-    const parsed = YAML.parse(yaml);
-    
-    if (!parsed.id || !parsed.type) {
-      res.status(400).json({ error: 'Workload must have id and type fields' });
-      return;
-    }
-    
-    // Check if workload already exists
-    if (getWorkload(parsed.id)) {
-      res.status(409).json({ error: `Workload with id "${parsed.id}" already exists` });
-      return;
-    }
-    
-    // Map type to folder
-    const categoryMap: Record<string, string> = {
-      'ad-hoc': 'ad-hoc',
-      task: 'tasks',
-      workflow: 'workflows',
-    };
-    
-    const category = categoryMap[parsed.type];
-    if (!category) {
-      res.status(400).json({ error: `Invalid workload type: ${parsed.type}. Must be ad-hoc, task, or workflow.` });
-      return;
-    }
-    
-    const filePath = `workloads/${category}/${parsed.id}.yaml`;
-    
+    parsed = YAML.parse(yamlContent);
+  } catch (parseError) {
+    res.status(400).json({
+      error: 'Invalid YAML syntax',
+      details: parseError instanceof Error ? parseError.message : 'Parse error'
+    });
+    return;
+  }
+  
+  if (!parsed.id || !parsed.type) {
+    res.status(400).json({ error: 'Workload must have id and type fields' });
+    return;
+  }
+  
+  // Validate against schema
+  const validation = validateWorkload(parsed, `${parsed.id}.yaml`);
+  if (!validation.success) {
+    res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error
+    });
+    return;
+  }
+  
+  // Check if workload already exists
+  if (getWorkload(parsed.id)) {
+    res.status(409).json({ error: `Workload with id "${parsed.id}" already exists` });
+    return;
+  }
+  
+  // Map type to folder
+  const categoryMap: Record<string, string> = {
+    'ad-hoc': 'ad-hoc',
+    task: 'tasks',
+    workflow: 'workflows',
+  };
+  
+  const category = categoryMap[parsed.type];
+  if (!category) {
+    res.status(400).json({ error: `Invalid workload type: ${parsed.type}. Must be ad-hoc, task, or workflow.` });
+    return;
+  }
+  
+  const filePath = `workloads/${category}/${parsed.id}.yaml`;
+  
+  try {
     // Create the file
-    writeFileSync(filePath, yaml, 'utf-8');
+    writeFileSync(filePath, yamlContent, 'utf-8');
     reloadWorkloads();
     
     res.json({ success: true, message: 'Workload created', id: parsed.id });

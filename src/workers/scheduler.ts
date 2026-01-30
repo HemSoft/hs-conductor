@@ -23,6 +23,7 @@ interface Schedule {
   enabled: boolean;
   params?: Record<string, unknown>;
   lastRunAt?: string;
+  missedExecutionPolicy?: 'catchup' | 'last' | 'skip' | 'log'; // Default: log
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +56,49 @@ function cronMatchesNow(cronExpression: string): boolean {
   } catch (err) {
     console.error(`Invalid cron expression: ${cronExpression}`, err);
     return false;
+  }
+}
+
+/**
+ * Check for missed executions since lastRunAt
+ * Returns array of missed execution times
+ */
+function getMissedExecutions(cronExpression: string, lastRunAt: string | undefined): Date[] {
+  if (!lastRunAt) {
+    return []; // Never run before, nothing missed
+  }
+  
+  try {
+    const now = new Date();
+    const lastRun = new Date(lastRunAt);
+    
+    // Get all scheduled times between lastRunAt and now
+    const expr = CronExpressionParser.parse(cronExpression, {
+      currentDate: lastRun,
+    });
+    
+    const missed: Date[] = [];
+    let next = expr.next().toDate();
+    
+    // Iterate through all scheduled times until we reach "now"
+    // Limit iterations to prevent infinite loop
+    let iterations = 0;
+    const maxIterations = 1000; // Safety limit
+    
+    while (next < now && iterations < maxIterations) {
+      missed.push(next);
+      try {
+        next = expr.next().toDate();
+      } catch {
+        break; // No more iterations available
+      }
+      iterations++;
+    }
+    
+    return missed;
+  } catch (err) {
+    console.error(`Failed to check missed executions for ${cronExpression}:`, err);
+    return [];
   }
 }
 
@@ -118,19 +162,61 @@ export const schedulerWorker = inngest.createFunction(
     const enabledSchedules = schedules.filter(s => s.enabled && s.cron);
     logger.info(`${enabledSchedules.length} enabled schedules with cron expressions`);
     
-    // Check each schedule
+    // Check each schedule for:
+    // 1. Missed executions (since lastRunAt)
+    // 2. Current execution (matches this minute)
     const dueSchedules: Schedule[] = [];
+    const missedSchedules: Array<{ schedule: Schedule; missedCount: number; missedTimes: Date[] }> = [];
     
     for (const schedule of enabledSchedules) {
-      if (schedule.cron && cronMatchesNow(schedule.cron)) {
-        dueSchedules.push(schedule);
-        logger.info(`Schedule "${schedule.name}" (${schedule.id}) is due - cron: ${schedule.cron}`);
+      if (!schedule.cron) continue;
+      
+      // Check for missed executions
+      const missed = getMissedExecutions(schedule.cron, schedule.lastRunAt);
+      if (missed.length > 0) {
+        const policy = schedule.missedExecutionPolicy || 'log';
+        missedSchedules.push({ schedule, missedCount: missed.length, missedTimes: missed });
+        
+        logger.warn(
+          `Schedule "${schedule.name}" (${schedule.id}) missed ${missed.length} execution(s). ` +
+          `Policy: ${policy}. Last run: ${schedule.lastRunAt || 'never'}`
+        );
+        
+        // Handle according to policy
+        if (policy === 'catchup') {
+          logger.info(`Catching up ALL ${missed.length} missed execution(s) for "${schedule.name}"`);
+          dueSchedules.push(schedule);
+        } else if (policy === 'last') {
+          const lastMissed = missed[missed.length - 1];
+          logger.info(
+            `Running most recent missed execution for "${schedule.name}" ` +
+            `(${missed.length} total missed, running last: ${lastMissed.toISOString()})`
+          );
+          dueSchedules.push(schedule);
+        } else if (policy === 'skip') {
+          logger.info(`Skipping ${missed.length} missed execution(s) for "${schedule.name}"`);
+        } else {
+          // Default: log (already logged above)
+          logger.info(`Logged ${missed.length} missed execution(s) for "${schedule.name}"`);
+        }
+      }
+      
+      // Check if schedule is due right now
+      if (cronMatchesNow(schedule.cron)) {
+        // Only add if not already added via catchup
+        if (!dueSchedules.includes(schedule)) {
+          dueSchedules.push(schedule);
+          logger.info(`Schedule "${schedule.name}" (${schedule.id}) is due - cron: ${schedule.cron}`);
+        }
       }
     }
     
     if (dueSchedules.length === 0) {
       logger.info('No schedules due this minute');
-      return { triggered: 0 };
+      return { 
+        triggered: 0,
+        missedExecutions: missedSchedules.length,
+      };
     }
     
     // Trigger each due schedule
@@ -161,13 +247,21 @@ export const schedulerWorker = inngest.createFunction(
     return { 
       triggered: triggered.length,
       scheduleIds: triggered,
+      missedExecutions: missedSchedules.length,
+      missedDetails: missedSchedules.map(m => ({
+        scheduleId: m.schedule.id,
+        scheduleName: m.schedule.name,
+        missedCount: m.missedCount,
+        policy: m.schedule.missedExecutionPolicy || 'log',
+      })),
     };
   }
 );
 
 /**
  * Handler for scheduled workload triggers
- * This receives the event and runs the workload via HTTP
+ * This receives the event and triggers the workload directly without HTTP
+ * Using direct function call since both are in the same process
  */
 export const scheduledWorkloadHandler = inngest.createFunction(
   {
@@ -180,21 +274,13 @@ export const scheduledWorkloadHandler = inngest.createFunction(
     
     logger.info(`Executing scheduled workload: ${workloadId} (schedule: ${scheduleName})`);
     
-    // Call the existing /run/:id endpoint which handles all workload types correctly
+    // Import here to avoid circular dependencies
+    const { executeWorkload } = await import('../lib/executor.js');
+    
+    // Execute workload directly without HTTP call
+    // This avoids authentication issues with Inngest
     const result = await step.run('trigger-workload', async () => {
-      const port = process.env.PORT || 2900;
-      const response = await fetch(`http://localhost:${port}/run/${workloadId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to trigger workload: ${errorText}`);
-      }
-      
-      return response.json();
+      return executeWorkload(workloadId, params);
     });
     
     return {

@@ -1,6 +1,16 @@
 # Copilot Instructions for hs-conductor
 
+**Project Name**: hs-conductor (not hs-cli-conductor)
+
 This project is an event-driven multi-agent orchestration system built with Inngest, Bun runtime, and GitHub Copilot SDK for AI inference.
+
+## Restricted Files
+
+The following files have exclusive ownership and must NOT be modified directly:
+
+| File | Owner | Notes |
+|------|-------|-------|
+| `CHANGELOG.md` | `.claude/skills/version/` skill | All changelog updates go through the version skill |
 
 ## Guiding Principles
 
@@ -126,3 +136,8 @@ const session = await client.createSession({
 ## Dependencies
 
 When adding dependencies, prefer: `inngest` for workflows, `zod` for validation, `commander` for CLI, `express` for serving Inngest functions.
+
+## User Preferences
+
+- **Testing**: The user prefers to run tests and scripts themselves. Do NOT run `run.ps1` or similar startup scripts - leave that to the user.
+- **Implementation over testing**: Focus on making code changes; let the user verify them.

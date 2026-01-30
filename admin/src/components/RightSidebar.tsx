@@ -302,7 +302,7 @@ export function RightSidebar({ onRunSelect, onRunDeleted, onRunningWorkloadsChan
     switch (status) {
       case 'completed': return '✅';
       case 'failed': return '❌';
-      case 'running': return '🔄';
+      case 'running': return <span className="spinner-circle" />;
       case 'scheduled': return '📅';
       default: return '⏳';
     }
@@ -388,7 +388,7 @@ export function RightSidebar({ onRunSelect, onRunDeleted, onRunningWorkloadsChan
                         onClick={() => handleRunClick(run)}
                       >
                         <div className="run-header">
-                          <span className={`status-icon ${run.status === 'running' ? 'spinning' : ''}`}>
+                          <span className="status-icon">
                             {getStatusIcon(run.status)}
                           </span>
                           <span className="workload-name">

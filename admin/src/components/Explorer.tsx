@@ -2,8 +2,8 @@ import { useEffect, useState, forwardRef, useImperativeHandle, useRef, useCallba
 import { Allotment } from 'allotment';
 import YAML from 'yaml';
 import { 
-  Zap, ClipboardList, GitBranch, Package, FileText, Loader2, 
-  Play, Pause, ChevronDown, ChevronRight, Calendar
+  Zap, ClipboardList, GitBranch, Package, FileText, 
+  Play, Pause, ChevronDown, ChevronRight, Calendar, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { CronBuilder } from './CronBuilder';
 import './Explorer.css';
@@ -53,6 +53,8 @@ export interface Workload {
   name: string;
   type: string;
   description?: string;
+  validationErrors?: string[];
+  validationWarnings?: string[];
 }
 
 export interface Schedule {
@@ -519,17 +521,35 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
                         <div className="tree-group-items">
                           {groupedWorkloads[type].map(workload => {
                             const isRunning = runningWorkloadIds?.has(workload.id);
+                            const hasErrors = workload.validationErrors && workload.validationErrors.length > 0;
+                            const hasWarnings = workload.validationWarnings && workload.validationWarnings.length > 0;
+                            const validationMessage = [
+                              ...(workload.validationErrors || []),
+                              ...(workload.validationWarnings || [])
+                            ].join('\n');
+                            
                             return (
                               <div
                                 key={workload.id}
-                                className={`tree-item ${selectedWorkload?.id === workload.id ? 'selected' : ''} ${isRunning ? 'running' : ''}`}
+                                className={`tree-item ${selectedWorkload?.id === workload.id ? 'selected' : ''} ${isRunning ? 'running' : ''} ${hasErrors ? 'has-error' : ''} ${hasWarnings && !hasErrors ? 'has-warning' : ''}`}
                                 onClick={() => onWorkloadSelect(workload)}
                                 onContextMenu={(e) => handleWorkloadItemContextMenu(e, workload)}
+                                title={validationMessage || workload.description}
                               >
-                                <span className={`item-icon ${isRunning ? 'spinning' : ''}`}>
-                                  {isRunning ? <Loader2 size={14} /> : <FileText size={14} />}
+                                <span className="item-icon">
+                                  {isRunning ? <span className="spinner-circle" /> : <FileText size={14} />}
                                 </span>
                                 <span className="item-name">{workload.name}</span>
+                                {hasErrors && (
+                                  <span className="validation-indicator error" title={workload.validationErrors?.join('\n')}>
+                                    <AlertCircle size={12} />
+                                  </span>
+                                )}
+                                {hasWarnings && !hasErrors && (
+                                  <span className="validation-indicator warning" title={workload.validationWarnings?.join('\n')}>
+                                    <AlertTriangle size={12} />
+                                  </span>
+                                )}
                               </div>
                             );
                           })}

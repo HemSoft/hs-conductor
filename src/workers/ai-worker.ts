@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { inngest } from '../inngest/client.js';
 import { EVENTS, TaskReadySchema } from '../inngest/events.js';
 import { readAsset, writeResult } from '../lib/file-storage.js';
-import { recordOutput, markRunCompleted } from '../lib/run-manifest.js';
+import { recordOutput, markRunStarted, markRunCompleted } from '../lib/run-manifest.js';
 import { getWorkload } from '../lib/workload-loader.js';
 import type { AlertConfig } from '../types/workload.js';
 import {
@@ -319,6 +319,14 @@ export const aiWorker = inngest.createFunction(
       throw new Error('AI worker requires a prompt in config');
     }
 
+    // For ad-hoc workloads, mark run as started (task-manager handles this for tasks/workflows)
+    const isAdHoc = taskId === 'ad-hoc-001';
+    if (isAdHoc) {
+      await step.run('mark-run-started', async () => {
+        await markRunStarted(runPath);
+      });
+    }
+
     // Read input data if provided (optional for ad-hoc tasks)
     const inputData = await step.run('read-input', async () => {
       if (!input || input.length === 0) {
@@ -369,7 +377,6 @@ export const aiWorker = inngest.createFunction(
       console.log('[ai-worker] Result written to:', `${runPath}/${output}`);
 
       // Record output in manifest
-      const isAdHoc = taskId === 'ad-hoc-001';
       await recordOutput(runPath, {
         file: output,
         step: taskId,

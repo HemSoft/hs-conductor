@@ -55,7 +55,7 @@ export async function writeResult(
 }
 
 /**
- * Read the plan manifest (PLAN.md parsed as JSON)
+ * Read the plan manifest (plan.json)
  */
 export async function getPlan(runPath: string): Promise<PlanInstance> {
   const planPath = join(runPath, 'plan.json');

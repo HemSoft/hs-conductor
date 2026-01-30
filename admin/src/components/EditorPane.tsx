@@ -1,6 +1,7 @@
-import Editor from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
+import type * as Monaco from 'monaco-editor';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import YAML from 'yaml';
+import YAML, { YAMLParseError } from 'yaml';
 
 // JavaScript to aggressively remove cookie consent banners
 const cookieConsentRemoverJS = `
@@ -77,6 +78,104 @@ import MarkdownPreview from '@uiw/react-markdown-preview';
 import type { Workload } from './Explorer';
 import './EditorPane.css';
 
+// Validation error with line information
+interface ValidationError {
+  message: string;
+  path: string;
+  line: number;
+  column: number;
+  endLine?: number;
+  endColumn?: number;
+}
+
+// Find line number for a YAML path like "input.topic.required"
+function findLineForPath(yamlContent: string, fieldPath: string): { line: number; column: number; endColumn: number } | null {
+  try {
+    const doc = YAML.parseDocument(yamlContent);
+    const pathParts = fieldPath.split('.');
+    
+    // Navigate the YAML AST to find the node
+    let currentNode: YAML.ParsedNode | null = doc.contents as YAML.ParsedNode;
+    
+    for (const part of pathParts) {
+      if (!currentNode || !('items' in currentNode)) break;
+      
+      const mapNode = currentNode as YAML.YAMLMap;
+      const pair = mapNode.items.find(item => {
+        const keyNode = item.key;
+        if (YAML.isScalar(keyNode)) {
+          return keyNode.value === part;
+        }
+        return false;
+      });
+      
+      if (pair) {
+        currentNode = pair.value as YAML.ParsedNode;
+      } else {
+        currentNode = null;
+      }
+    }
+    
+    if (currentNode && currentNode.range) {
+      // Get line/column from the range
+      const lines = yamlContent.substring(0, currentNode.range[0]).split('\n');
+      const line = lines.length;
+      const column = lines[lines.length - 1].length + 1;
+      
+      // Calculate end position
+      const endLines = yamlContent.substring(0, currentNode.range[1]).split('\n');
+      const endColumn = endLines[endLines.length - 1].length + 1;
+      
+      return { line, column, endColumn };
+    }
+  } catch {
+    // Fall back to searching by text
+  }
+  
+  // Fallback: search for the last part of the path in the YAML
+  const lastPart = fieldPath.split('.').pop() || fieldPath;
+  const lines = yamlContent.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const lineContent = lines[i];
+    const match = lineContent.match(new RegExp(`^\\s*${lastPart}\\s*:`));
+    if (match) {
+      const colonIndex = lineContent.indexOf(':');
+      const valueStart = colonIndex + 2;
+      const valueEnd = lineContent.length;
+      return { line: i + 1, column: valueStart, endColumn: valueEnd + 1 };
+    }
+  }
+  
+  return null;
+}
+
+// Parse validation response to extract structured errors
+function parseValidationErrors(yamlContent: string, errorDetails: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  // Parse error lines like "  • input.topic.required: Expected boolean, received string"
+  const errorRegex = /•\s*([^:]+):\s*(.+)/g;
+  let match;
+  
+  while ((match = errorRegex.exec(errorDetails)) !== null) {
+    const path = match[1].trim();
+    const message = match[2].trim();
+    
+    const location = findLineForPath(yamlContent, path);
+    
+    errors.push({
+      message: `${path}: ${message}`,
+      path,
+      line: location?.line || 1,
+      column: location?.column || 1,
+      endColumn: location?.endColumn,
+    });
+  }
+  
+  return errors;
+}
+
 // Helper to format file sizes
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -124,9 +223,12 @@ interface EditorPaneProps {
   onBackToWorkload?: () => void;
   onYamlChange?: (yaml: string) => void;
   onFileSelect?: (instanceId: string, filename: string) => void;
+  onCloseWorkload?: () => void;
+  onEditWorkload?: (workload: Workload) => void;
+  onWorkloadSaved?: () => void;
 }
 
-export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToWorkload, onYamlChange, onFileSelect }: EditorPaneProps) {
+export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToWorkload, onYamlChange, onFileSelect, onCloseWorkload, onEditWorkload, onWorkloadSaved }: EditorPaneProps) {
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [editedYaml, setEditedYaml] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -134,7 +236,10 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
   const [viewMode, setViewMode] = useState<'code' | 'preview'>('preview'); // Default to preview for markdown
   const [webViewUrl, setWebViewUrl] = useState<string | null>(null);
   const [webViewHistory, setWebViewHistory] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
+  const monacoRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoInstanceRef = useRef<typeof Monaco | null>(null);
 
   // Track if content has been modified
   const hasChanges = editedYaml !== null && editedYaml !== yamlContent;
@@ -143,6 +248,7 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
   useEffect(() => {
     setEditedYaml(null);
     setSaveMessage(null);
+    setValidationErrors([]);
   }, [workload?.id]);
 
   // Reset web view when result changes
@@ -234,6 +340,7 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
       
       setSaveMessage({ type: 'success', text: 'Saved!' });
       onYamlChange?.(editedYaml);
+      onWorkloadSaved?.(); // Refresh explorer to update validation indicators
       setEditedYaml(null); // Reset to match server state
       
       // Clear success message after 2s
@@ -246,7 +353,7 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
     } finally {
       setIsSaving(false);
     }
-  }, [workload, editedYaml, onYamlChange]);
+  }, [workload, editedYaml, onYamlChange, onWorkloadSaved]);
 
   // Keyboard shortcut for save
   useEffect(() => {
@@ -261,6 +368,103 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [hasChanges, isSaving, handleSave]);
+
+  // Monaco editor mount handler
+  const handleEditorMount: OnMount = useCallback((editor, monaco) => {
+    monacoRef.current = editor;
+    monacoInstanceRef.current = monaco;
+  }, []);
+
+  // Validate YAML content and set markers
+  const validateContent = useCallback(async (content: string) => {
+    if (!workload || !monacoRef.current || !monacoInstanceRef.current) return;
+    
+    const monaco = monacoInstanceRef.current;
+    const model = monacoRef.current.getModel();
+    if (!model) return;
+    
+    const errors: ValidationError[] = [];
+    
+    // First, check YAML syntax
+    try {
+      YAML.parse(content);
+    } catch (e) {
+      if (e instanceof YAMLParseError) {
+        const pos = e.linePos?.[0] || { line: 1, col: 1 };
+        errors.push({
+          message: e.message.split('\n')[0], // First line of error message
+          path: 'syntax',
+          line: pos.line,
+          column: pos.col,
+          endColumn: pos.col + 10,
+        });
+      }
+    }
+    
+    // If no syntax errors, validate schema via backend
+    if (errors.length === 0) {
+      try {
+        const response = await fetch(`http://localhost:2900/workloads/${workload.id}/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ yaml: content }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.details) {
+            const schemaErrors = parseValidationErrors(content, errorData.details);
+            errors.push(...schemaErrors);
+          }
+        }
+      } catch {
+        // Network error - skip validation
+      }
+    }
+    
+    // Set Monaco markers
+    const markers: Monaco.editor.IMarkerData[] = errors.map(err => ({
+      severity: monaco.MarkerSeverity.Error,
+      message: err.message,
+      startLineNumber: err.line,
+      startColumn: err.column,
+      endLineNumber: err.endLine || err.line,
+      endColumn: err.endColumn || err.column + 20,
+    }));
+    
+    monaco.editor.setModelMarkers(model, 'workload-validation', markers);
+    setValidationErrors(errors);
+  }, [workload]);
+
+  // Debounced validation on content change
+  useEffect(() => {
+    const content = editedYaml ?? yamlContent;
+    // Skip validation if:
+    // - No content or workload
+    // - Content is still loading
+    // - Result view is active
+    if (!content || !workload || content === '# Loading...' || resultView) {
+      setValidationErrors([]);
+      return;
+    }
+    
+    const timeoutId = setTimeout(() => {
+      validateContent(content);
+    }, 500); // Debounce 500ms
+    
+    return () => clearTimeout(timeoutId);
+  }, [editedYaml, yamlContent, workload, validateContent, resultView]);
+
+  // Clear markers when workload changes
+  useEffect(() => {
+    if (monacoRef.current && monacoInstanceRef.current) {
+      const model = monacoRef.current.getModel();
+      if (model) {
+        monacoInstanceRef.current.editor.setModelMarkers(model, 'workload-validation', []);
+      }
+    }
+    setValidationErrors([]);
+  }, [workload?.id]);
 
   // Parse YAML to extract input definitions
   const inputDefs = useMemo(() => {
@@ -460,6 +664,9 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
         <div className={`tab active ${hasChanges ? 'modified' : ''}`}>
           <span className="tab-icon">📄</span>
           <span className="tab-name">{hasChanges ? '● ' : ''}{workload.name}.yaml</span>
+          <button className="tab-close" onClick={onCloseWorkload} title="Close workload">
+            ✕
+          </button>
         </div>
       </div>
       <div className="editor-toolbar">
@@ -467,6 +674,11 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
           <span className="workload-type">{workload.type}</span>
           <span className="workload-name">{workload.name}</span>
           {hasChanges && <span className="modified-indicator">● Modified</span>}
+          {validationErrors.length > 0 && (
+            <span className="validation-error-badge" title={validationErrors.map(e => e.message).join('\n')}>
+              ⚠️ {validationErrors.length} {validationErrors.length === 1 ? 'error' : 'errors'}
+            </span>
+          )}
           {saveMessage && (
             <span className={`save-message ${saveMessage.type}`}>
               {saveMessage.text}
@@ -475,10 +687,17 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
         </div>
         <div className="toolbar-right">
           <button 
+            className="edit-btn" 
+            onClick={() => workload && onEditWorkload?.(workload)}
+            title="Edit workload properties"
+          >
+            ✏️ Edit
+          </button>
+          <button 
             className="save-btn" 
             onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-            title={hasChanges ? 'Save changes (Ctrl+S)' : 'No changes to save'}
+            disabled={!hasChanges || isSaving || validationErrors.length > 0}
+            title={validationErrors.length > 0 ? `Fix ${validationErrors.length} validation error(s) first` : hasChanges ? 'Save changes (Ctrl+S)' : 'No changes to save'}
           >
             {isSaving ? '⏳' : '💾'} Save
           </button>
@@ -522,11 +741,13 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
       )}
       <div className="editor-content">
         <Editor
+          key={workload.id}
           height="100%"
           defaultLanguage="yaml"
           theme="vs-dark"
           value={editedYaml ?? yamlContent ?? '# Loading...'}
           onChange={handleEditorChange}
+          onMount={handleEditorMount}
           options={{
             readOnly: false,
             minimap: { enabled: false },
@@ -539,6 +760,35 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
           }}
         />
       </div>
+      {validationErrors.length > 0 && (
+        <div className="validation-panel">
+          <div className="validation-header">
+            <span className="validation-icon">⚠️</span>
+            <span>Problems ({validationErrors.length})</span>
+          </div>
+          <div className="validation-list">
+            {validationErrors.map((err, i) => (
+              <div 
+                key={i} 
+                className="validation-item"
+                onClick={() => {
+                  // Jump to error line in editor
+                  if (monacoRef.current) {
+                    monacoRef.current.setPosition({ lineNumber: err.line, column: err.column });
+                    monacoRef.current.focus();
+                    monacoRef.current.revealLineInCenter(err.line);
+                  }
+                }}
+                title="Click to go to error"
+              >
+                <span className="error-icon">❌</span>
+                <span className="error-message">{err.message}</span>
+                <span className="error-location">Ln {err.line}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

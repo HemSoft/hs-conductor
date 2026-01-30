@@ -194,6 +194,12 @@ function App() {
     setResultView(null);
   };
 
+  const handleCloseWorkload = () => {
+    setSelectedWorkload(null);
+    setYamlContent(null);
+    setResultView(null);
+  };
+
   // Workload CRUD handlers
   const handleCreateWorkload = () => {
     setEditorModal({ mode: 'create' });
@@ -239,8 +245,17 @@ function App() {
     });
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to save workload');
+      const errorData = await response.json();
+      // Include details if available (for validation errors)
+      const errorMessage = errorData.details 
+        ? `${errorData.error}\n\n${errorData.details}`
+        : errorData.error || 'Failed to save workload';
+      throw new Error(errorMessage);
+    }
+    
+    // Update EditorPane if the edited workload is currently selected
+    if (!isNew && selectedWorkload?.id === editorModal?.workload?.id) {
+      setYamlContent(yaml);
     }
     
     // Refresh the explorer and stats
@@ -309,6 +324,9 @@ function App() {
               onBackToWorkload={handleBackToWorkload}
               onYamlChange={setYamlContent}
               onFileSelect={handleFileSelect}
+              onCloseWorkload={handleCloseWorkload}
+              onEditWorkload={handleEditWorkload}
+              onWorkloadSaved={handleReload}
             />
           </Allotment.Pane>
           <Allotment.Pane minSize={200} preferredSize={280} maxSize={400}>
