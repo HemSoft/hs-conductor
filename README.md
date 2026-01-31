@@ -11,115 +11,131 @@
 
 `hs-conductor` is an event-driven multi-agent orchestration system that uses Inngest for workflow management and GitHub Copilot SDK for AI inference.
 
-## Features
+---
 
-- **GitHub Copilot SDK**: Enterprise-grade AI through your existing Copilot subscription
-- **Event-Driven Architecture**: Parallel task execution with dependency resolution
-- **File-Based State**: Markdown plans with JSON assets
-- **Reusable Workers**: Fetch, File, and AI workers for common operations
+## Getting Started
 
-## Prerequisites
+### Prerequisites
 
-- **Node.js 22+** with npm (required for installing Copilot CLI)
-  - Install: Download from [nodejs.org](https://nodejs.org/) or use a version manager like [nvm](https://github.com/nvm-sh/nvm)
-  - Verify:
+Before you begin, make sure you have these installed:
 
-    ```bash
-    node --version
-    npm --version
-    ```
+| Requirement | Version | How to Check | Install |
+|------------|---------|--------------|---------|
+| **Node.js** | 22+ | `node --version` | [nodejs.org](https://nodejs.org/) |
+| **Bun** | 1.2+ | `bun --version` | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
+| **GitHub Copilot CLI** | Latest | `copilot --version` | `npm install -g @github/copilot-cli` |
 
-- **Bun 1.2+** (runtime for the conductor application)
-  - Install (Windows):
-
-    ```powershell
-    powershell -c "irm bun.sh/install.ps1 | iex"
-    ```
-
-  - Install (macOS/Linux):
-
-    ```bash
-    curl -fsSL https://bun.sh/install | bash
-    ```
-
-  - Verify:
-
-    ```bash
-    bun --version
-    ```
-
-- **GitHub Copilot CLI** (AI inference)
-  - Install:
-
-    ```bash
-    npm install -g @github/copilot-cli
-    ```
-
-  - Authenticate:
-
-    ```bash
-    copilot auth
-    ```
-
-## Quick Start
-
-### 1. Clone & Setup
+After installing Copilot CLI, authenticate once:
 
 ```powershell
-# Clone the repository
+copilot auth
+```
+
+---
+
+## Installation
+
+### Step 1: Clone & Setup
+
+```powershell
 git clone https://github.com/HemSoft/hs-conductor.git
 cd hs-conductor
-
-# Run setup script (installs dependencies, copies demo workloads)
 .\setup.ps1
 ```
 
-### 2. Configure Environment
+The setup script will:
+
+- ✅ Verify Bun is installed
+- ✅ Install all dependencies
+- ✅ Copy demo workloads to get you started
+- ✅ Create a `.env` file from the template
+
+### Step 2: Configure Environment (Optional)
+
+For local development, the default `.env` values work out of the box — no changes needed.
+
+If deploying to production with Inngest Cloud, edit `.env` and generate real keys:
 
 ```powershell
-# Copy example config
-Copy-Item .env.example .env
-
-# Generate secure keys
 openssl rand -hex 32  # Use for INNGEST_SIGNING_KEY
 ```
 
-Edit `.env` with your keys.
+### Step 3: Run Conductor
 
-### 3. Start Development
+You have two options for running Conductor:
+
+#### Option A: Manual (Development)
+
+Run when you need it, stop with Ctrl+C:
 
 ```powershell
-# Start the conductor server (includes Inngest dev server)
-bun run dev
-
-# In terminal 2: Run a plan
-coStart the conductor server and Inngest dev
 .\run.ps1
-
-# Or manually:
-# Terminal 1: Start conductor server
-bun run dev
-
-# Terminal 2: Access via HTTP
-# The server will be running at http://localhost:2900
 ```
 
-### 5. Run Your First Workload
+This starts all services in the foreground:
+
+- Backend server: <http://localhost:2900>
+- Inngest dashboard: <http://localhost:2901>
+- Admin UI: <http://localhost:5173>
+
+#### Option B: Background Service (Always-On)
+
+For 24/7 operation that starts automatically with Windows:
 
 ```powershell
-# In a new terminal while server is running
-# Try a simple example
+# Requires Administrator privileges
+.\setup-service.ps1
+```
+
+This creates a Windows Scheduled Task that:
+
+- ✅ Starts automatically when Windows boots
+- ✅ Monitors and restarts services if they crash
+- ✅ Runs silently in the background
+
+To remove the background service later:
+
+```powershell
+# Requires Administrator privileges
+.\uninstall-service.ps1
+```
+
+---
+
+## Running Your First Workload
+
+With the server running, try a simple example:
+
+```powershell
+# Tell a joke
 curl -X POST http://localhost:2900/run/joke
 
-# Or run news digest
+# Get a weather report
+curl -X POST http://localhost:2900/run/weather
+
+# Run news digest
 curl -X POST http://localhost:2900/run/news-digest
 ```
 
-### 6
+---
+
+## Script Reference
+
+| Script | Purpose | Admin Required |
+|--------|---------|:--------------:|
+| `setup.ps1` | First-time setup: install deps, copy workloads, create .env | No |
+| `run.ps1` | Start all services (backend + Inngest + admin UI) | No |
+| `run-server.ps1` | Start backend services only (no admin UI) | No |
+| `run-app.ps1` | Start admin UI only (requires backend running) | No |
+| `setup-service.ps1` | Install background service for 24/7 operation | **Yes** |
+| `update-service.ps1` | Restart background service after changes | **Yes** |
+| `uninstall-service.ps1` | Remove background service | **Yes** |
+
+**Running as Administrator:** Right-click PowerShell → "Run as administrator"
+
+---
 
 ## Keyboard Shortcuts
-
-The admin UI supports various keyboard shortcuts across different contexts:
 
 ### Global
 
@@ -127,45 +143,35 @@ The admin UI supports various keyboard shortcuts across different contexts:
 |----------|--------|
 | `F11` | Toggle fullscreen mode |
 
-### YAML Editor (when editing a workload)
+### YAML Editor
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+S` / `Cmd+S` | Save changes to the workload |
+| `Ctrl+S` / `Cmd+S` | Save changes |
 
-### Result View (when viewing run results)
-
-| Shortcut | Action |
-|----------|--------|
-| `Escape` | Close embedded web view (when browsing links) |
-
-### Workload Editor Modal
+### Result View
 
 | Shortcut | Action |
 |----------|--------|
-| `Enter` | Add tag (when focused on tag input field) |
+| `Escape` | Close embedded web view |
+
+---
 
 ## Architecture
-
-. Monitor
-
-- **Inngest Dashboard**: <http://localhost:2901>
-- **Plan Status**: Check execution logs in the terminal
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      hs-conductor                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│   CLI Commands           Inngest Functions                      │
-│   ──────────────         ─────────────────────────────          │
-│   conductor run     ──►  conductor/plan.created                 │
-│   conductor status       conductor/task.ready                   │
-│   conductor list         conductor/task.completed               │
+│   HTTP API               Inngest Functions                      │
+│   ────────────           ─────────────────────────────          │
+│   POST /run/:id    ──►   conductor/plan.created                 │
+│   GET /status/:id        conductor/task.ready                   │
+│   GET /workloads         conductor/task.completed               │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │         INNGEST DEV SERVER (npx inngest-cli)            │   │
-│   │                   localhost:2901                        │   │
+│   │         INNGEST DEV SERVER (localhost:2901)             │   │
 │   └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │   Workers                                                       │
@@ -177,32 +183,7 @@ The admin UI supports various keyboard shortcuts across different contexts:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `conductor run <template>` | Run a plan from a template |
-| `conductor status [plan-id]` | Check status of a plan |
-| `conductor list` | List all plan runs |
-| `conductor templates` | List available templates |
-| `conductor dev` | Start development server |
-
-## Infrastructure
-
-The conductor runs with minimal external dependencies:
-
-- **Inngest Dev Server**: Runs via `npx inngest-cli dev` on port 2901 (auto-started by `run.ps1`)
-- **Express App**: Bun server on port 2900 hosting Inngest workers
-- **File Storage**: Local filesystem for plans, results, and workload definitions
-
-### Development Commands
-
-```powershell
-# Start everything (Inngest + Express)
-bun run dev
-
-# Stop with Ctrl+C or close the terminal
-```
+---
 
 ## Configuration
 
@@ -216,73 +197,58 @@ bun run dev
 | `COPILOT_MODEL` | Default AI model | `claude-sonnet-4.5` |
 | `CONDUCTOR_DATA_PATH` | Data directory | `./data` |
 
-## AI Integration
+### Available AI Models
 
-The AI Worker uses GitHub Copilot SDK, which requires:
+Models are fetched dynamically from your Copilot subscription:
 
-1. **Copilot CLI**: Install via `npm install -g @github/copilot-cli`  
-2. **Authentication**: Run `copilot auth` to authenticate (or use VS Code Copilot extension)
+| Provider | Models |
+|----------|--------|
+| **Anthropic** | `claude-sonnet-4.5` (default), `claude-opus-4.5`, `claude-haiku-4.5` |
+| **OpenAI** | `gpt-5.2`, `gpt-5.1-codex`, `gpt-5`, `gpt-5-mini` |
+| **Google** | `gemini-3-pro` |
 
-No API keys or paid subscription required - works with the free Copilot tier (50 requests/month) or any paid plan.
+*Available models depend on your Copilot subscription tier.*
 
-### Available Models
-
-Models are fetched dynamically from the Copilot CLI at runtime. The system automatically filters to the latest version of each model family:
-
-**Claude (Anthropic):**
-
-- `claude-sonnet-4.5` (default) - Best balance of speed/quality
-- `claude-opus-4.5` - Most capable, highest quality
-- `claude-haiku-4.5` - Fastest, most cost-effective
-
-**GPT (OpenAI):**
-
-- `gpt-5.2` - Latest GPT model
-- `gpt-5.1-codex` - Code-specialized
-- `gpt-5` - Stable baseline
-- `gpt-5-mini` - Cost-effective
-
-**Gemini (Google):**
-
-- `gemini-3-pro` - Google's latest
-
-*Note: Available models depend on your Copilot subscription tier.*
-
-## Development
-
-```powershell
-# Build
-bun run build
-
-# Type check
-bun run typecheck
-
-# Lint
-bun run lint
-
-# Format
-bun run format
-```
+---
 
 ## Project Structure
 
 ```
 hs-conductor/
 ├── src/
-│   ├── inngest/
-│   │   ├── client.ts       # Inngest client configuration
-│   │   └── events.ts       # Event definitions
-│   ├── workers/
-│   │   └── ai-worker.ts    # AI worker (Copilot SDK)
-│   ├── lib/
-│   │   └── file-storage.ts # Plan & asset storage
-│   └── types/
-│       └── plan.ts         # TypeScript definitions
+│   ├── inngest/          # Inngest client & events
+│   ├── workers/          # AI, Fetch, File workers
+│   ├── lib/              # Utilities & storage
+│   └── types/            # TypeScript definitions
+├── admin/                # Electron admin UI
+├── workloads/            # Your workload definitions
+├── workloads-demo/       # Example workloads
 └── data/
-    ├── runs/               # Execution instances
-    ├── schedules/          # Cron schedules
-    └── alerts/             # Alert history
+    ├── runs/             # Execution history
+    ├── schedules/        # Cron schedules
+    └── alerts/           # Alert history
 ```
+
+---
+
+## Development
+
+```powershell
+bun run build       # Build
+bun run typecheck   # Type check
+bun run lint        # Lint
+bun run format      # Format
+```
+
+---
+
+## Documentation
+
+- [Adding Workloads](docs/ADDING-WORKLOADS.md) - Create your own workloads
+- [Examples](docs/EXAMPLES.md) - Detailed examples
+- [Demo Workloads](workloads-demo/README.md) - Included examples
+
+---
 
 ## License
 

@@ -29,8 +29,17 @@ $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
 
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host ""
     Write-Host "[ERR] This script requires administrator privileges" -ForegroundColor Red
-    Write-Host "Please run PowerShell as Administrator and try again" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "To run as Administrator:" -ForegroundColor Yellow
+    Write-Host "  1. Right-click on PowerShell or Windows Terminal" -ForegroundColor Gray
+    Write-Host "  2. Select 'Run as administrator'" -ForegroundColor Gray
+    Write-Host "  3. Navigate to this folder:" -ForegroundColor Gray
+    Write-Host "     cd $PWD" -ForegroundColor Cyan
+    Write-Host "  4. Run this script again:" -ForegroundColor Gray
+    Write-Host "     .\setup-service.ps1" -ForegroundColor Cyan
+    Write-Host ""
     exit 1
 }
 
@@ -45,7 +54,10 @@ function Write-Success { Write-Host "[OK]" -ForegroundColor $SuccessColor -NoNew
 function Write-Error-Custom { Write-Host "[ERR]" -ForegroundColor $ErrorColor -NoNewline; Write-Host " $args" }
 function Write-Warning-Custom { Write-Host "[!]" -ForegroundColor $WarningColor -NoNewline; Write-Host " $args" }
 
-Write-Info "Setting up HemSoft Conductor Server Background Task"
+Write-Host ""
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host "  HemSoft Conductor - Background Service Setup" -ForegroundColor Cyan
+Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Configuration
@@ -130,17 +142,25 @@ try {
     $taskInfo = Get-ScheduledTask -TaskName $taskName
     Write-Success "Task started - State: $($taskInfo.State)"
     Write-Host ""
-    Write-Host "The HemSoft Conductor Server is now running in the background." -ForegroundColor Green
-    Write-Host "It will:" -ForegroundColor Green
-    Write-Host "  ✓ Start automatically when Windows boots" -ForegroundColor Green
-    Write-Host "  ✓ Monitor backend services every 60 seconds" -ForegroundColor Green
-    Write-Host "  ✓ Auto-restart services if they crash" -ForegroundColor Green
-    Write-Host "  ✓ Auto-restart itself if it crashes (3 attempts, 1 min interval)" -ForegroundColor Green
-    Write-Host "  ✓ Log all events to ~/.claude/skills/logs/hs-conductor/" -ForegroundColor Green
     Write-Host ""
-    Write-Warning-Custom "To stop the task, run: Stop-ScheduledTask -TaskName HemSoft-Conductor-Server"
-    Write-Info "To view logs, check: c:\Users\User\.claude\skills\logs\hs-conductor\"
-    Write-Info "To view task: taskschd.msc"
+    Write-Host "================================================" -ForegroundColor Green
+    Write-Host "  Service Installed Successfully!" -ForegroundColor Green
+    Write-Host "================================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "The Conductor background service will:" -ForegroundColor White
+    Write-Host "  [OK] Start automatically when Windows boots" -ForegroundColor Green
+    Write-Host "  [OK] Monitor backend services every 60 seconds" -ForegroundColor Green
+    Write-Host "  [OK] Auto-restart services if they crash" -ForegroundColor Green
+    Write-Host "  [OK] Auto-restart itself if it crashes" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Useful commands:" -ForegroundColor Yellow
+    Write-Host "  View service status:    Get-ScheduledTask -TaskName HemSoft-Conductor-Server" -ForegroundColor Gray
+    Write-Host "  Stop service:           Stop-ScheduledTask -TaskName HemSoft-Conductor-Server" -ForegroundColor Gray
+    Write-Host "  Start service:          Start-ScheduledTask -TaskName HemSoft-Conductor-Server" -ForegroundColor Gray
+    Write-Host "  Uninstall service:      .\uninstall-service.ps1  (requires admin)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Log location: c:\Users\User\.claude\skills\logs\hs-conductor\" -ForegroundColor DarkGray
+    Write-Host ""
 } catch {
     Write-Error-Custom "Failed to create task: $_"
     exit 1

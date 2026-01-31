@@ -31,8 +31,17 @@ $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
 
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host ""
     Write-Host "[ERR] This script requires administrator privileges" -ForegroundColor Red
-    Write-Host "Please run PowerShell as Administrator and try again" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "To run as Administrator:" -ForegroundColor Yellow
+    Write-Host "  1. Right-click on PowerShell or Windows Terminal" -ForegroundColor Gray
+    Write-Host "  2. Select 'Run as administrator'" -ForegroundColor Gray
+    Write-Host "  3. Navigate to this folder:" -ForegroundColor Gray
+    Write-Host "     cd $PWD" -ForegroundColor Cyan
+    Write-Host "  4. Run this script again:" -ForegroundColor Gray
+    Write-Host "     .\update-service.ps1" -ForegroundColor Cyan
+    Write-Host ""
     exit 1
 }
 

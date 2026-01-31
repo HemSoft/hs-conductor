@@ -79,17 +79,37 @@ if (-not (Test-Path ".env")) {
 }
 
 Write-Host ""
-Write-Host "==================================" -ForegroundColor Cyan
-Write-Host "  Setup Complete!" -ForegroundColor Cyan
-Write-Host "==================================" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Green
+Write-Host "  Setup Complete!" -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor White
-Write-Host "  1. Edit .env and configure your environment" -ForegroundColor Gray
-Write-Host "  2. Run: .\run.ps1" -ForegroundColor Gray
-Write-Host "  3. Try example workloads from workloads-demo/" -ForegroundColor Gray
+Write-Host "What was done:" -ForegroundColor White
+Write-Host "  [OK] Bun dependencies installed" -ForegroundColor Green
+Write-Host "  [OK] Demo workloads copied to workloads/" -ForegroundColor Green
+Write-Host "  [OK] Environment file created (.env)" -ForegroundColor Green
 Write-Host ""
-Write-Host "Documentation:" -ForegroundColor White
-Write-Host "  - README.md - Getting started guide" -ForegroundColor Gray
-Write-Host "  - workloads-demo/README.md - Example workloads" -ForegroundColor Gray
-Write-Host "  - docs/EXAMPLES.md - Detailed examples" -ForegroundColor Gray
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  Ready to Run!" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "For local development, the default .env works out of the box." -ForegroundColor Gray
+Write-Host "(Only edit .env if deploying to production with Inngest Cloud)" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "Choose how to run Conductor:" -ForegroundColor White
+Write-Host ""
+Write-Host "  Option A - Manual (for development):" -ForegroundColor Yellow
+Write-Host "    .\run.ps1" -ForegroundColor Cyan
+Write-Host "    Runs in foreground. Press Ctrl+C to stop." -ForegroundColor Gray
+Write-Host ""
+Write-Host "  Option B - Background Service (for 24/7 operation):" -ForegroundColor Yellow
+Write-Host "    .\setup-service.ps1" -ForegroundColor Cyan
+Write-Host "    Requires Administrator. Starts automatically with Windows." -ForegroundColor Gray
+Write-Host "    To remove later: .\uninstall-service.ps1" -ForegroundColor Gray
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "  Documentation" -ForegroundColor Gray
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "  README.md              - Getting started" -ForegroundColor DarkGray
+Write-Host "  docs/ADDING-WORKLOADS.md - Create your own workloads" -ForegroundColor DarkGray
+Write-Host "  workloads-demo/        - Example workloads" -ForegroundColor DarkGray
 Write-Host ""
