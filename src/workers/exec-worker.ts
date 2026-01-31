@@ -61,12 +61,26 @@ function executeCommand(
       cwd: options.cwd || process.cwd(),
       env: { ...process.env, ...options.env },
       shell: true,
-      windowsHide: true,
+      windowsHide: false, // CRITICAL: Must be false for pipes to work
     });
 
     let stdout = '';
     let stderr = '';
     let timedOut = false;
+
+    // Check if streams are available
+    if (!child.stdout || !child.stderr) {
+      resolve({
+        success: false,
+        exitCode: -1,
+        stdout: '',
+        stderr: '',
+        command: fullCommand,
+        duration: 0,
+        error: 'Failed to create stdout/stderr pipes',
+      });
+      return;
+    }
 
     // Set timeout
     const timeoutHandle = setTimeout(() => {
@@ -75,12 +89,12 @@ function executeCommand(
     }, timeout);
 
     // Capture stdout
-    child.stdout?.on('data', (data) => {
+    child.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
     });
 
     // Capture stderr
-    child.stderr?.on('data', (data) => {
+    child.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
@@ -180,9 +194,12 @@ export const execWorker = inngest.createFunction(
     });
 
     // Process result
-    const finalResult = await step.run('process-result', async () => {
+    const finalResult = await step.run('process-result', () => {
       if (!result.success) {
-        console.error('[exec-worker] Command failed:', result.error || `Exit code ${result.exitCode}`);
+        console.error(
+          '[exec-worker] Command failed:',
+          result.error || `Exit code ${result.exitCode}`
+        );
         if (result.stderr) {
           console.error('[exec-worker] stderr:', result.stderr);
         }
@@ -196,7 +213,9 @@ export const execWorker = inngest.createFunction(
         processedOutput = filterOutput(result.stdout, filter);
         filtered = true;
         console.log(`[exec-worker] Applied filter: ${filter}`);
-        console.log(`[exec-worker] Filtered output: ${processedOutput.length} chars (from ${result.stdout.length})`);
+        console.log(
+          `[exec-worker] Filtered output: ${processedOutput.length} chars (from ${result.stdout.length})`
+        );
       }
 
       return {
