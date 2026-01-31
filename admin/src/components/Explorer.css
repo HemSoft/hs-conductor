@@ -247,21 +247,22 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   padding: 4px 0;
   z-index: 1000;
-  min-width: 160px;
+  width: max-content;
+  min-width: 180px;
 }
 
 .context-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 8px 12px;
+  padding: 8px 16px;
   background: none;
   border: none;
   color: #cccccc;
   font-size: 13px;
   cursor: pointer;
   text-align: left;
+  white-space: nowrap;
 }
 
 .context-menu-item:hover {

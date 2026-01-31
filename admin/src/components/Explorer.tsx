@@ -152,6 +152,25 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
   const [loadingInputs, setLoadingInputs] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Pane sizes (persisted to localStorage)
+  const [explorerPaneSizes, setExplorerPaneSizes] = useState<number[]>(() => {
+    const saved = localStorage.getItem('conductor-explorer-pane-sizes');
+    return saved ? JSON.parse(saved) : [400, 150];
+  });
+  const explorerPaneSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Save explorer pane sizes when changed (debounced)
+  const handleExplorerPaneChange = useCallback((sizes: number[]) => {
+    setExplorerPaneSizes(sizes);
+    // Debounce localStorage writes
+    if (explorerPaneSaveTimeoutRef.current) {
+      clearTimeout(explorerPaneSaveTimeoutRef.current);
+    }
+    explorerPaneSaveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem('conductor-explorer-pane-sizes', JSON.stringify(sizes));
+    }, 300);
+  }, []);
+
   // Callback for CronBuilder
   const handleCronChange = useCallback((cron: string) => {
     setNewSchedule(s => ({ ...s, cron }));
@@ -474,8 +493,8 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
 
   return (
     <div className="explorer">
-      <Allotment vertical>
-        <Allotment.Pane minSize={100} preferredSize={400}>
+      <Allotment vertical onChange={handleExplorerPaneChange} defaultSizes={explorerPaneSizes}>
+        <Allotment.Pane minSize={100}>
           <div className="explorer-section">
             <div className="explorer-header">
               <span>WORKLOADS</span>
@@ -563,7 +582,7 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
           </div>
         </Allotment.Pane>
         
-        <Allotment.Pane minSize={60} preferredSize={150}>
+        <Allotment.Pane minSize={60}>
           <div 
             className="explorer-section schedules-section"
             onContextMenu={handleScheduleContextMenu}

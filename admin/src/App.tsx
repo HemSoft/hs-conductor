@@ -39,6 +39,25 @@ function App() {
   const [workloadStats, setWorkloadStats] = useState<WorkloadStats>({ total: 0, byType: {} });
   const [scheduleCount, setScheduleCount] = useState(0);
 
+  // Pane sizes (persisted to localStorage)
+  const [paneSizes, setPaneSizes] = useState<number[]>(() => {
+    const saved = localStorage.getItem('conductor-pane-sizes');
+    return saved ? JSON.parse(saved) : [250, -1, 280]; // -1 means flex
+  });
+  const paneSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Save pane sizes when changed (debounced)
+  const handlePaneChange = useCallback((sizes: number[]) => {
+    setPaneSizes(sizes);
+    // Debounce localStorage writes
+    if (paneSaveTimeoutRef.current) {
+      clearTimeout(paneSaveTimeoutRef.current);
+    }
+    paneSaveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem('conductor-pane-sizes', JSON.stringify(sizes));
+    }, 300);
+  }, []);
+
   // Fetch stats for status bar
   const fetchStats = useCallback(async () => {
     try {
@@ -302,8 +321,8 @@ function App() {
       />
       <div className="app-content">
         <ActivityBar activeView={activeView} onViewChange={setActiveView} />
-        <Allotment>
-          <Allotment.Pane minSize={150} preferredSize={250} maxSize={400}>
+        <Allotment onChange={handlePaneChange}>
+          <Allotment.Pane minSize={150} preferredSize={paneSizes[0]} maxSize={400}>
             <Explorer
               ref={explorerRef}
               onWorkloadSelect={handleExplorerWorkloadSelect}
@@ -329,7 +348,7 @@ function App() {
               onWorkloadSaved={handleReload}
             />
           </Allotment.Pane>
-          <Allotment.Pane minSize={200} preferredSize={280} maxSize={400}>
+          <Allotment.Pane minSize={200} preferredSize={paneSizes[2]} maxSize={400}>
             <RightSidebar
               onRunSelect={handleRunSelect}
               onRunDeleted={handleRunDeleted}

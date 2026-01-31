@@ -2,15 +2,6 @@ import { useState, useEffect } from 'react';
 import YAML from 'yaml';
 import './WorkloadEditorModal.css';
 
-// Type for window.ipcRenderer
-declare global {
-  interface Window {
-    ipcRenderer: {
-      invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
-    };
-  }
-}
-
 // ============ TYPES ============
 
 export type WorkloadType = 'ad-hoc' | 'task' | 'workflow';

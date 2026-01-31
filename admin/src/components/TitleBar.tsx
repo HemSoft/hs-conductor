@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { X, Cpu, Zap, Github, Heart } from 'lucide-react';
 import './TitleBar.css';
 
 interface MenuItem {
@@ -23,6 +24,7 @@ interface TitleBarProps {
 
 export function TitleBar({ onReload, onFullScreen }: TitleBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [showAbout, setShowAbout] = useState(false);
   const menuBarRef = useRef<HTMLDivElement>(null);
 
   const menus: Menu[] = [
@@ -56,18 +58,15 @@ export function TitleBar({ onReload, onFullScreen }: TitleBarProps) {
         { label: 'Zoom Out', accelerator: 'Ctrl+Num-' },
         { label: 'Reset Zoom', accelerator: 'Ctrl+Num0' },
         { type: 'separator' },
-        { label: 'Reload', accelerator: 'Ctrl+R', action: () => window.location.reload() },
-        { label: 'Toggle Developer Tools', accelerator: 'Ctrl+Shift+I' }
+        { label: 'Reload', accelerator: 'Ctrl+R', action: () => window.location.reload() }
       ]
     },
     {
       label: 'Help',
       items: [
         { 
-          label: 'About hs-conductor', 
-          action: () => {
-            alert('hs-conductor Admin\n\nEvent-Driven Multi-Agent Orchestration\nVersion 0.1.0');
-          }
+          label: 'About Conductor', 
+          action: () => setShowAbout(true)
         }
       ]
     }
@@ -138,6 +137,72 @@ export function TitleBar({ onReload, onFullScreen }: TitleBarProps) {
         <span className="title-product">Conductor</span>
         <span className="title-version">V0.1.0</span>
       </div>
+
+      {/* About Modal */}
+      {showAbout && (
+        <div className="about-overlay" onClick={() => setShowAbout(false)}>
+          <div className="about-modal" onClick={e => e.stopPropagation()}>
+            <button className="about-close" onClick={() => setShowAbout(false)}>
+              <X size={18} />
+            </button>
+            
+            <div className="about-header">
+              <div className="about-logo">
+                <Cpu size={48} strokeWidth={1.5} />
+              </div>
+              <h1 className="about-title">Conductor</h1>
+              <span className="about-version">Version 0.1.0</span>
+            </div>
+
+            <div className="about-tagline">
+              <Zap size={16} />
+              <span>Event-Driven Multi-Agent Orchestration</span>
+            </div>
+
+            <div className="about-description">
+              A powerful system for orchestrating AI workflows, scheduling tasks, 
+              and managing workloads with Inngest and GitHub Copilot SDK.
+            </div>
+
+            <div className="about-tech">
+              <div className="about-tech-item">
+                <span className="tech-label">Runtime</span>
+                <span className="tech-value">Bun 1.2+</span>
+              </div>
+              <div className="about-tech-item">
+                <span className="tech-label">Orchestration</span>
+                <span className="tech-value">Inngest</span>
+              </div>
+              <div className="about-tech-item">
+                <span className="tech-label">AI</span>
+                <span className="tech-value">Copilot SDK</span>
+              </div>
+            </div>
+
+            <div className="about-footer">
+              <button 
+                className="about-link"
+                onClick={() => {
+                  const shell = (window as unknown as { electronShell?: { openExternal: (url: string) => void } }).electronShell;
+                  if (shell) {
+                    shell.openExternal('https://github.com/HemSoft/hs-conductor');
+                  } else {
+                    window.open('https://github.com/HemSoft/hs-conductor', '_blank');
+                  }
+                }}
+              >
+                <Github size={16} />
+                <span>View on GitHub</span>
+              </button>
+              <div className="about-credits">
+                <span>Made with</span>
+                <Heart size={14} className="heart-icon" />
+                <span>by HemSoft Developments</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
