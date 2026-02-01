@@ -51,7 +51,8 @@ if (-not $SkipDependencies) {
             Name = "PowerShell"
             Command = { powershell -c "irm bun.sh/install.ps1 | iex" }
         }
-        Write-Host "  $optionNum. PowerShell installer (official)" -ForegroundColor Cyan
+        Write-Host "  $optionNum. PowerShell installer" -ForegroundColor Cyan
+        Write-Host "     Command: powershell -c `"irm bun.sh/install.ps1 | iex`"" -ForegroundColor DarkGray
         $optionNum++
         
         # Add package managers that are installed
@@ -62,6 +63,7 @@ if (-not $SkipDependencies) {
                 Command = { winget install Oven-sh.Bun }
             }
             Write-Host "  $optionNum. Windows Package Manager (winget)" -ForegroundColor Cyan
+            Write-Host "     Command: winget install Oven-sh.Bun" -ForegroundColor DarkGray
             $optionNum++
         }
         
@@ -72,6 +74,7 @@ if (-not $SkipDependencies) {
                 Command = { scoop install bun }
             }
             Write-Host "  $optionNum. Scoop" -ForegroundColor Cyan
+            Write-Host "     Command: scoop install bun" -ForegroundColor DarkGray
             $optionNum++
         }
         
@@ -82,6 +85,7 @@ if (-not $SkipDependencies) {
                 Command = { choco install bun -y }
             }
             Write-Host "  $optionNum. Chocolatey" -ForegroundColor Cyan
+            Write-Host "     Command: choco install bun -y" -ForegroundColor DarkGray
             $optionNum++
         }
         
@@ -92,6 +96,7 @@ if (-not $SkipDependencies) {
                 Command = { npm install -g bun }
             }
             Write-Host "  $optionNum. npm" -ForegroundColor Cyan
+            Write-Host "     Command: npm install -g bun" -ForegroundColor DarkGray
             $optionNum++
         }
         
