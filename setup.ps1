@@ -31,74 +31,119 @@ if (-not $SkipDependencies) {
         Write-Host ""
         Write-Host "Bun is required to run hs-conductor." -ForegroundColor Yellow
         Write-Host ""
+        
+        # Detect available package managers
+        $hasWinget = Get-Command winget -ErrorAction SilentlyContinue
+        $hasScoop = Get-Command scoop -ErrorAction SilentlyContinue
+        $hasChoco = Get-Command choco -ErrorAction SilentlyContinue
+        $hasNpm = Get-Command npm -ErrorAction SilentlyContinue
+        
         Write-Host "How would you like to install Bun?" -ForegroundColor White
         Write-Host ""
-        Write-Host "  1. PowerShell installer (recommended)" -ForegroundColor Cyan
-        Write-Host "  2. Windows Package Manager (winget)" -ForegroundColor Cyan
-        Write-Host "  3. Skip - I'll install it manually" -ForegroundColor Gray
+        
+        $options = @()
+        $commands = @{}
+        $optionNum = 1
+        
+        # Add PowerShell installer (always available)
+        $options += "PowerShell installer (official)"
+        $commands[$optionNum] = @{
+            Name = "PowerShell"
+            Command = { powershell -c "irm bun.sh/install.ps1 | iex" }
+        }
+        Write-Host "  $optionNum. PowerShell installer (official)" -ForegroundColor Cyan
+        $optionNum++
+        
+        # Add package managers that are installed
+        if ($hasWinget) {
+            $options += "Windows Package Manager (winget)"
+            $commands[$optionNum] = @{
+                Name = "winget"
+                Command = { winget install Oven-sh.Bun }
+            }
+            Write-Host "  $optionNum. Windows Package Manager (winget)" -ForegroundColor Cyan
+            $optionNum++
+        }
+        
+        if ($hasScoop) {
+            $options += "Scoop"
+            $commands[$optionNum] = @{
+                Name = "Scoop"
+                Command = { scoop install bun }
+            }
+            Write-Host "  $optionNum. Scoop" -ForegroundColor Cyan
+            $optionNum++
+        }
+        
+        if ($hasChoco) {
+            $options += "Chocolatey"
+            $commands[$optionNum] = @{
+                Name = "Chocolatey"
+                Command = { choco install bun -y }
+            }
+            Write-Host "  $optionNum. Chocolatey" -ForegroundColor Cyan
+            $optionNum++
+        }
+        
+        if ($hasNpm) {
+            $options += "npm"
+            $commands[$optionNum] = @{
+                Name = "npm"
+                Command = { npm install -g bun }
+            }
+            Write-Host "  $optionNum. npm" -ForegroundColor Cyan
+            $optionNum++
+        }
+        
+        # Skip option
+        $skipOption = $optionNum
+        Write-Host "  $skipOption. Skip - I'll install it manually" -ForegroundColor Gray
+        
         Write-Host ""
+        $choice = Read-Host "Enter your choice (1-$skipOption)"
         
-        $choice = Read-Host "Enter your choice (1, 2, or 3)"
+        if ($choice -eq $skipOption) {
+            Write-Host ""
+            Write-Host "Installation commands:" -ForegroundColor White
+            Write-Host ""
+            Write-Host "  PowerShell:     powershell -c `"irm bun.sh/install.ps1 | iex`"" -ForegroundColor Gray
+            if ($hasWinget) { Write-Host "  Winget:         winget install Oven-sh.Bun" -ForegroundColor Gray }
+            if ($hasScoop) { Write-Host "  Scoop:          scoop install bun" -ForegroundColor Gray }
+            if ($hasChoco) { Write-Host "  Chocolatey:     choco install bun" -ForegroundColor Gray }
+            if ($hasNpm) { Write-Host "  npm:            npm install -g bun" -ForegroundColor Gray }
+            Write-Host "  More info:      https://bun.sh" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "After installing, restart your terminal and run: .\setup.ps1" -ForegroundColor Yellow
+            Write-Host ""
+            exit 1
+        }
         
-        switch ($choice) {
-            "1" {
+        [int]$choiceInt = 0
+        if ([int]::TryParse($choice, [ref]$choiceInt) -and $commands.ContainsKey($choiceInt)) {
+            $installer = $commands[$choiceInt]
+            Write-Host ""
+            Write-Host "Installing Bun via $($installer.Name)..." -ForegroundColor Yellow
+            try {
+                & $installer.Command
                 Write-Host ""
-                Write-Host "Installing Bun via PowerShell..." -ForegroundColor Yellow
-                try {
-                    powershell -c "irm bun.sh/install.ps1 | iex"
-                    Write-Host ""
-                    Write-Host "[OK] Bun installed successfully!" -ForegroundColor Green
-                    Write-Host ""
-                    Write-Host "Please restart this terminal for PATH changes to take effect, then run:" -ForegroundColor Yellow
-                    Write-Host "  .\setup.ps1" -ForegroundColor Cyan
-                    Write-Host ""
-                    exit 0
-                } catch {
-                    Write-Host ""
-                    Write-Host "[X] Installation failed: $_" -ForegroundColor Red
-                    Write-Host "Please install manually from: https://bun.sh" -ForegroundColor Yellow
-                    Write-Host ""
-                    exit 1
-                }
-            }
-            "2" {
+                Write-Host "[OK] Bun installed successfully!" -ForegroundColor Green
                 Write-Host ""
-                Write-Host "Installing Bun via winget..." -ForegroundColor Yellow
-                try {
-                    winget install Oven-sh.Bun
-                    Write-Host ""
-                    Write-Host "[OK] Bun installed successfully!" -ForegroundColor Green
-                    Write-Host ""
-                    Write-Host "Please restart this terminal for PATH changes to take effect, then run:" -ForegroundColor Yellow
-                    Write-Host "  .\setup.ps1" -ForegroundColor Cyan
-                    Write-Host ""
-                    exit 0
-                } catch {
-                    Write-Host ""
-                    Write-Host "[X] Installation failed: $_" -ForegroundColor Red
-                    Write-Host "Please install manually from: https://bun.sh" -ForegroundColor Yellow
-                    Write-Host ""
-                    exit 1
-                }
-            }
-            "3" {
+                Write-Host "Please restart this terminal for PATH changes to take effect, then run:" -ForegroundColor Yellow
+                Write-Host "  .\setup.ps1" -ForegroundColor Cyan
                 Write-Host ""
-                Write-Host "Installation options:" -ForegroundColor White
+                exit 0
+            } catch {
                 Write-Host ""
-                Write-Host "  PowerShell:     powershell -c `"irm bun.sh/install.ps1 | iex`"" -ForegroundColor Gray
-                Write-Host "  Winget:         winget install Oven-sh.Bun" -ForegroundColor Gray
-                Write-Host "  More info:      https://bun.sh" -ForegroundColor Gray
-                Write-Host ""
-                Write-Host "After installing, restart your terminal and run: .\setup.ps1" -ForegroundColor Yellow
+                Write-Host "[X] Installation failed: $_" -ForegroundColor Red
+                Write-Host "Please try a different method or install manually from: https://bun.sh" -ForegroundColor Yellow
                 Write-Host ""
                 exit 1
             }
-            default {
-                Write-Host ""
-                Write-Host "[X] Invalid choice. Please run setup again and choose 1, 2, or 3." -ForegroundColor Red
-                Write-Host ""
-                exit 1
-            }
+        } else {
+            Write-Host ""
+            Write-Host "[X] Invalid choice. Please run setup again and choose a valid option." -ForegroundColor Red
+            Write-Host ""
+            exit 1
         }
     }
 
