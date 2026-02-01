@@ -28,6 +28,7 @@ export interface StepConfig {
 }
 
 export interface WorkloadStep {
+  _key?: string; // Internal React key, not saved to YAML
   id: string;
   name: string;
   worker: WorkerType;
@@ -96,7 +97,10 @@ function parseYamlToForm(yaml: string): WorkloadFormData | null {
       model: parsed.model || '',
       outputFormat: parsed.output?.format || 'text',
       input: parsed.input || {},
-      steps: parsed.steps || [],
+      steps: (parsed.steps || []).map((s: WorkloadStep) => ({
+        ...s,
+        _key: crypto.randomUUID(), // Assign stable key for React
+      })),
     };
   } catch {
     return null;
@@ -310,6 +314,7 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
 
   const handleAddStep = () => {
     const newStep: WorkloadStep = {
+      _key: crypto.randomUUID(), // Stable key for React, not saved to YAML
       id: `step-${(form.steps?.length || 0) + 1}`,
       name: `Step ${(form.steps?.length || 0) + 1}`,
       worker: 'ai-worker',
@@ -615,7 +620,7 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
                     <div className="steps-list">
                       {form.steps.map((step, index) => (
                         <StepEditor
-                          key={step.id}
+                          key={step._key || step.id}
                           step={step}
                           index={index}
                           isWorkflow={form.type === 'workflow'}

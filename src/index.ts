@@ -9,6 +9,7 @@ import { serve } from 'inngest/express';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import { inngest } from './inngest/client.js';
+import { getConfig, getServerConfig, getInngestConfig, getPathsConfig } from './lib/config.js';
 import { aiWorker } from './workers/ai-worker.js';
 import { execWorker } from './workers/exec-worker.js';
 import { fetchWorker } from './workers/fetch-worker.js';
@@ -25,7 +26,10 @@ import { join, dirname } from 'path';
 import { CronExpressionParser } from 'cron-parser';
 
 const app = express();
-const port = process.env.PORT || 2900;
+const config = getConfig();
+const serverConfig = getServerConfig();
+const pathsConfig = getPathsConfig();
+const port = serverConfig.port;
 
 // Enable CORS for admin UI
 app.use((_req, res, next) => {
@@ -45,6 +49,28 @@ app.use(express.json());
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Get current configuration (read-only view)
+app.get('/config', (_req, res) => {
+  const cfg = config;
+  // Return sanitized config (no secrets in clear text)
+  res.json({
+    env: cfg.env,
+    server: {
+      port: cfg.server.port,
+      corsOrigin: cfg.server.corsOrigin,
+    },
+    inngest: {
+      baseUrl: cfg.inngest.baseUrl,
+      eventKey: cfg.inngest.eventKey ? '••••••••' : undefined,
+      signingKey: cfg.inngest.signingKey ? '••••••••' : undefined,
+    },
+    ai: cfg.ai,
+    paths: cfg.paths,
+    logging: cfg.logging,
+    workers: cfg.workers,
+  });
 });
 
 // List all workloads
@@ -320,7 +346,7 @@ app.post('/workloads/:id/move', (req, res) => {
     .replace(/^\/|\/$/g, '');
   
   // Build new path
-  const WORKLOADS_BASE = process.env.WORKLOADS_DIR || 'workloads';
+  const WORKLOADS_BASE = pathsConfig.workloads;
   const newPath = sanitizedFolder 
     ? join(WORKLOADS_BASE, sanitizedFolder, filename)
     : join(WORKLOADS_BASE, filename);
@@ -363,7 +389,7 @@ app.post('/workloads/:id/move', (req, res) => {
 
 // ============ FOLDER MANAGEMENT ============
 
-const WORKLOADS_DIR = process.env.WORKLOADS_DIR || 'workloads';
+const WORKLOADS_DIR = pathsConfig.workloads;
 
 /**
  * Helper to get all folders recursively
@@ -1171,7 +1197,8 @@ app.use(
 
 // Start server
 app.listen(port, () => {
-  const inngestUrl = process.env.INNGEST_BASE_URL || 'http://localhost:2901';
+  const inngestConfig = getInngestConfig();
+  const inngestUrl = inngestConfig.baseUrl;
 
   console.log(
     boxen(

@@ -9,7 +9,7 @@ interface ActivityBarProps {
 export function ActivityBar({ activeView, onViewChange }: ActivityBarProps) {
   const items = [
     { id: 'explorer', icon: Files, tooltip: 'Explorer' },
-    { id: 'settings', icon: Settings, tooltip: 'Settings', disabled: true },
+    { id: 'settings', icon: Settings, tooltip: 'Settings' },
   ];
 
   return (

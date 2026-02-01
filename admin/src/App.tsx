@@ -9,6 +9,7 @@ import type { FileInfo } from './components/EditorPane';
 import { RightSidebar, RunInfo } from './components/RightSidebar';
 import { WorkloadEditorModal } from './components/WorkloadEditorModal';
 import { DeleteWorkloadModal } from './components/DeleteWorkloadModal';
+import { SettingsPanel } from './components/SettingsPanel';
 import { StatusBar } from './components/StatusBar';
 import './App.css';
 
@@ -320,16 +321,20 @@ function App() {
         <ActivityBar activeView={activeView} onViewChange={setActiveView} />
         <Allotment onChange={handlePaneChange}>
           <Allotment.Pane minSize={150} preferredSize={paneSizes[0]} maxSize={400}>
-            <Explorer
-              ref={explorerRef}
-              onWorkloadSelect={handleExplorerWorkloadSelect}
-              selectedWorkload={selectedWorkload}
-              onCreateWorkload={handleCreateWorkload}
-              onEditWorkload={handleEditWorkload}
-              onDuplicateWorkload={handleDuplicateWorkload}
-              onDeleteWorkload={handleDeleteWorkload}
-              runningWorkloadIds={runningWorkloadIds}
-            />
+            {activeView === 'settings' ? (
+              <SettingsPanel />
+            ) : (
+              <Explorer
+                ref={explorerRef}
+                onWorkloadSelect={handleExplorerWorkloadSelect}
+                selectedWorkload={selectedWorkload}
+                onCreateWorkload={handleCreateWorkload}
+                onEditWorkload={handleEditWorkload}
+                onDuplicateWorkload={handleDuplicateWorkload}
+                onDeleteWorkload={handleDeleteWorkload}
+                runningWorkloadIds={runningWorkloadIds}
+              />
+            )}
           </Allotment.Pane>
           <Allotment.Pane minSize={300}>
             <EditorPane

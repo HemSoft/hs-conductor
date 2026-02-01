@@ -7,7 +7,7 @@
 | 3 | Consolidate Workloads Structure | Medium | ✅ Done |
 | 4 | Folder Management UI | Medium | ✅ Done |
 | 5 | Drag-and-Drop Workload Organization | Medium | ✅ Done |
-| 6 | Configuration System | Medium | Not Started |
+| 6 | Configuration System | Medium | ✅ Done |
 | 7 | Address Sanitization Strategy | Medium | Not Started |
 
 ---
@@ -37,6 +37,7 @@
 **Completed:** Workloads now use a unified schema with folder-based organization.
 
 **Changes Made:**
+
 - Removed `type` field from all workload YAML files and schemas
 - Execution mode (prompt-based vs step-based) is now inferred from structure:
   - Has `prompt` field → runs as single AI execution
@@ -48,6 +49,7 @@
 - All admin panel components updated for folder-based grouping
 
 **New Structure:**
+
 ```
 workloads/
   joke.yaml              # Flat at root
@@ -67,12 +69,14 @@ Workload organization is completely flexible - structure your folders however yo
 **Completed:** Added full folder management capabilities to the Admin Panel.
 
 **Backend API Endpoints:**
+
 - `GET /folders` - List all folders with workload counts
 - `POST /folders` - Create new folder (supports nested paths with `/`)
 - `PUT /folders/:path` - Rename folder
 - `DELETE /folders/:path` - Delete empty folder
 
 **Frontend Features:**
+
 - New Folder button (📁) in workloads header
 - Right-click context menu on folders with:
   - Rename Folder
@@ -91,10 +95,12 @@ Workload organization is completely flexible - structure your folders however yo
 **Completed:** Implemented native HTML5 drag-and-drop for workload organization.
 
 **Backend:**
+
 - `POST /workloads/:id/move` - Moves workload YAML file to target folder
 - Handles folder validation, path sanitization, and auto-creates folders if needed
 
 **Frontend Features:**
+
 - Workload items are draggable with grab cursor indicator
 - Folders act as drop targets with visual feedback (blue dashed outline)
 - Dragging workload becomes semi-transparent to indicate drag state
@@ -105,20 +111,46 @@ Workload organization is completely flexible - structure your folders however yo
 
 ---
 
-### 6. Configuration System
+### 6. Configuration System ✅
 
-Need a proper configuration system for managing:
-- Environment-specific settings (dev, staging, prod)
-- Port configurations
-- Model preferences and defaults
-- Worker behaviors
-- Logging levels
+**Completed:** Implemented a centralized, type-safe configuration system with YAML files and environment variable overrides.
 
-**Considerations:**
-- File format (YAML, JSON, TOML?)
-- Environment variable overrides
-- Secrets management (separate from config)
-- Runtime reloading capability
+**Configuration Files:**
+
+- `config.yaml` - Default configuration with all settings documented
+- `config.dev.yaml` - Development environment overrides (optional)
+- `config.prod.yaml` - Production environment overrides (optional)
+
+**Configuration Module:** `src/lib/config.ts`
+
+**Features:**
+
+- **YAML-based**: Consistent with workload definitions
+- **Type-safe**: Zod schemas with TypeScript inference
+- **Layered loading**: defaults → config.yaml → config.{env}.yaml → env vars (highest priority)
+- **Environment variable mapping**: All existing env vars still work (PORT, COPILOT_MODEL, etc.)
+- **Runtime reloading**: `reloadConfig()` for hot reload capability
+- **Convenience accessors**: `getServerConfig()`, `getAIConfig()`, `getInngestConfig()`, etc.
+
+**Configuration Sections:**
+
+- `server`: port, corsOrigin
+- `inngest`: baseUrl, eventKey, signingKey
+- `ai`: defaultModel, useMock, concurrency, retries
+- `paths`: data, workloads, skills, allowedWritePath
+- `logging`: level, timestamps, colors
+- `workers.exec`: timeout, shell
+- `workers.fetch`: timeout, userAgent
+
+**Files Updated:**
+
+- `src/index.ts` - Server configuration
+- `src/inngest/client.ts` - Inngest configuration
+- `src/workers/ai-worker.ts` - AI/model configuration
+- `src/lib/file-storage.ts` - Data paths
+- `src/lib/skill-loader.ts` - Skill folders
+- `src/lib/copilot-tools.ts` - Write sandbox path
+- `src/lib/workload-loader.ts` - Workloads path
 
 ---
 

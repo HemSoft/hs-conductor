@@ -41,7 +41,7 @@ export function createManifest(
 
   // Initialize steps for step-based workloads
   if (definition.steps && definition.steps.length > 0) {
-    const steps = definition.steps as Step[];
+    const steps = definition.steps;
     manifest.steps = steps.map((step) => ({
       id: step.id,
       name: step.name,

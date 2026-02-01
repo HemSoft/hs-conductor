@@ -34,6 +34,7 @@ import {
   isInitialized as skillsInitialized,
   getSkillCount,
 } from '../lib/skill-loader.js';
+import { getAIConfig } from '../lib/config.js';
 
 // Singleton Copilot client
 let copilotClient: CopilotClient | null = null;
@@ -171,7 +172,8 @@ async function getCopilotClient(): Promise<CopilotClient> {
 async function processPromptWithCopilot(prompt: string): Promise<string> {
   try {
     const client = await getCopilotClient();
-    const model = process.env.COPILOT_MODEL || 'claude-sonnet-4.5';
+    const aiConfig = getAIConfig();
+    const model = aiConfig.defaultModel;
 
     console.log('[ai-worker] Creating Copilot session with model:', model);
 
@@ -188,7 +190,7 @@ async function processPromptWithCopilot(prompt: string): Promise<string> {
     // Create session with tools registered
     const session = await client.createSession({
       model,
-      tools: tools as Tool<unknown>[],
+      tools: tools,
       // Use REPLACE mode to completely override SDK's default system message
       systemMessage: {
         mode: 'replace',
@@ -287,8 +289,10 @@ function getMockResponse(prompt: string): string {
  * Process prompt - tries Copilot first, falls back to mock
  */
 async function processPrompt(prompt: string): Promise<string> {
+  const aiConfig = getAIConfig();
+  
   // Check if we should use mock mode
-  if (process.env.USE_MOCK_AI === 'true') {
+  if (aiConfig.useMock) {
     return getMockResponse(prompt);
   }
 
@@ -303,8 +307,8 @@ async function processPrompt(prompt: string): Promise<string> {
 export const aiWorker = inngest.createFunction(
   {
     id: 'ai-worker',
-    concurrency: { limit: 1 },
-    retries: 2,
+    concurrency: { limit: getAIConfig().concurrency },
+    retries: getAIConfig().retries as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
   },
   {
     event: EVENTS.TASK_READY,

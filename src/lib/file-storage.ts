@@ -6,8 +6,14 @@
 import { readFile, writeFile, mkdir, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import type { PlanInstance, TaskStatus } from '../types/plan.js';
+import { getPathsConfig } from './config.js';
 
-const DATA_PATH = process.env.CONDUCTOR_DATA_PATH || './data';
+/**
+ * Get the data path from configuration
+ */
+function getDataPath(): string {
+  return getPathsConfig().data;
+}
 
 /**
  * Ensure directory exists
@@ -136,7 +142,7 @@ export async function getReadyTasks(runPath: string): Promise<PlanInstance['task
  * Get the latest plan ID
  */
 export async function getLatestPlanId(): Promise<string | null> {
-  const runsPath = join(DATA_PATH, 'runs');
+  const runsPath = join(getDataPath(), 'runs');
 
   try {
     const entries = await readdir(runsPath);
@@ -163,7 +169,7 @@ export async function getLatestPlanId(): Promise<string | null> {
 export async function getAllPlanRuns(): Promise<
   Array<{ planId: string; createdAt: Date }>
 > {
-  const runsPath = join(DATA_PATH, 'runs');
+  const runsPath = join(getDataPath(), 'runs');
 
   try {
     const entries = await readdir(runsPath);

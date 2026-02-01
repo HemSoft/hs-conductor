@@ -22,19 +22,20 @@ import {
   readSkillResource,
   listSkillResources,
 } from './skill-loader.js';
+import { getPathsConfig } from './config.js';
 
 // ============================================================================
 // WRITE SANDBOX CONFIGURATION
 // ============================================================================
 
 /**
- * Get the allowed write path from environment or use default (data/)
- * Set ALLOWED_WRITE_PATH to customize, or set to "*" to allow all paths
+ * Get the allowed write path from configuration or use default (data/)
+ * Set paths.allowedWritePath in config.yaml to customize, or set to "*" to allow all paths
  */
 function getAllowedWritePath(): string {
-  const envPath = process.env.ALLOWED_WRITE_PATH;
-  if (envPath === '*') return '*'; // Allow all paths (trust mode)
-  if (envPath) return resolve(envPath);
+  const configPath = getPathsConfig().allowedWritePath;
+  if (configPath === '*') return '*'; // Allow all paths (trust mode)
+  if (configPath) return resolve(configPath);
   return resolve(process.cwd(), 'data');
 }
 
@@ -60,7 +61,7 @@ function validateWritePath(targetPath: string): { valid: true; resolvedPath: str
       valid: false,
       error: `Write access denied. Path must be within '${normalizedAllowed}'. ` +
              `Attempted to write to '${normalizedTarget}'. ` +
-             `Set ALLOWED_WRITE_PATH env var to change or use '*' for unrestricted access.`,
+             `Set paths.allowedWritePath in config.yaml to change or use '*' for unrestricted access.`,
     };
   }
 

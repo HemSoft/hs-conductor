@@ -2,16 +2,18 @@
  * Inngest Client Configuration
  */
 import { Inngest } from 'inngest';
+import { getInngestConfig } from '../lib/config.js';
 
-// Event key and signing key for Inngest
-const eventKey = process.env.INNGEST_EVENT_KEY || 'test-event-key-12345678';
-const signingKey = process.env.INNGEST_SIGNING_KEY;
+// Get Inngest configuration
+const inngestConfig = getInngestConfig();
+const eventKey = inngestConfig.eventKey || 'test-event-key-12345678';
+const signingKey = inngestConfig.signingKey;
 
 export const inngest = new Inngest({
   id: 'hs-conductor',
   name: 'Conductor',
   eventKey,
-  baseUrl: process.env.INNGEST_BASE_URL || 'http://localhost:2901',
+  baseUrl: inngestConfig.baseUrl,
 });
 
 // Re-export for convenience

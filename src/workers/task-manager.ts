@@ -226,7 +226,7 @@ export const taskProgressHandler = inngest.createFunction(
     });
 
     // Get or reconstruct plan state
-    let state = planStates.get(planId);
+    const state = planStates.get(planId);
 
     if (!state) {
       console.warn(`[task-manager] Plan state not found for ${planId}, skipping`);
@@ -280,7 +280,7 @@ export const taskProgressHandler = inngest.createFunction(
             planId,
             taskId: task.id,
             worker: task.worker,
-            config: interpolateConfig(task.config || {}, state!.input),
+            config: interpolateConfig(task.config || {}, state.input),
             input: task.input || [],
             output: task.output,
             runPath,

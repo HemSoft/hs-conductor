@@ -15,12 +15,18 @@ import { join, relative } from 'path';
 import { parse as parseYaml } from 'yaml';
 import type { WorkloadDefinition } from '../types/workload.js';
 import { validateWorkload } from '../types/workload-schemas.js';
+import { getPathsConfig } from './config.js';
 
-// Search paths in priority order (personal first, then demo)
-const WORKLOAD_PATHS = [
-  process.env.WORKLOADS_DIR || 'workloads',
-  'workloads-demo',
-];
+/**
+ * Get workload search paths from configuration
+ */
+function getWorkloadPaths(): string[] {
+  const pathsConfig = getPathsConfig();
+  return [
+    pathsConfig.workloads,
+    'workloads-demo',
+  ];
+}
 
 // Cache loaded workloads
 let workloadCache: Map<string, WorkloadDefinition> | null = null;
@@ -87,7 +93,7 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
   validationErrors = [];
 
   // Load from all search paths (reverse order so personal overrides demo)
-  for (const basePath of [...WORKLOAD_PATHS].reverse()) {
+  for (const basePath of [...getWorkloadPaths()].reverse()) {
     const yamlFiles = findYamlFiles(basePath, basePath);
 
     for (const filePath of yamlFiles) {

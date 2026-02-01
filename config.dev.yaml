@@ -1,0 +1,12 @@
+# hs-conductor Development Configuration
+#
+# Overrides for local development. These values are merged on top of config.yaml.
+# Only include values that differ from the defaults.
+
+# Development uses verbose logging
+logging:
+  level: debug
+
+# Development can use mock AI for faster iteration
+# ai:
+#   useMock: true

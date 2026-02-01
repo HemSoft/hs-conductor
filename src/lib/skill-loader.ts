@@ -7,6 +7,7 @@
  * 3. Resources (as needed): scripts/, references/, assets/ on demand
  *
  * Configuration:
+ * - paths.skills in config.yaml (comma-separated or array)
  * - SKILL_FOLDERS env var (comma-separated paths)
  * - Default: ~/.claude/skills
  */
@@ -14,6 +15,7 @@
 import { homedir } from 'os';
 import { join, resolve } from 'path';
 import { readdir } from 'fs/promises';
+import { getSkillFolders as getConfigSkillFolders } from './config.js';
 
 export interface SkillMetadata {
   name: string;
@@ -30,17 +32,17 @@ export interface SkillContent extends SkillMetadata {
 }
 
 // In-memory cache of discovered skills
-let skillCache: Map<string, SkillMetadata> = new Map();
+const skillCache: Map<string, SkillMetadata> = new Map();
 let skillFolders: string[] = [];
 let initialized = false;
 
 /**
- * Get configured skill folders from environment or use default
+ * Get configured skill folders from configuration or use default
  */
 function getSkillFolders(): string[] {
-  const envFolders = process.env.SKILL_FOLDERS;
-  if (envFolders) {
-    return envFolders.split(',').map((p) => p.trim()).filter(Boolean);
+  const configFolders = getConfigSkillFolders();
+  if (configFolders.length > 0) {
+    return configFolders;
   }
   // Default: ~/.claude/skills
   return [join(homedir(), '.claude', 'skills')];

@@ -1,0 +1,50 @@
+# hs-conductor Configuration
+# 
+# This is the default configuration file. Values can be overridden by:
+# 1. Environment-specific files (config.dev.yaml, config.prod.yaml)
+# 2. Environment variables (see mappings in src/lib/config.ts)
+#
+# Environment variables take highest priority.
+
+# Environment: development | staging | production
+env: development
+
+# HTTP Server settings
+server:
+  port: 2900
+  corsOrigin: "*"
+
+# Inngest orchestration settings
+inngest:
+  baseUrl: http://localhost:2901
+  # eventKey: set via INNGEST_EVENT_KEY env var
+  # signingKey: set via INNGEST_SIGNING_KEY env var
+
+# AI/LLM settings
+ai:
+  defaultModel: claude-sonnet-4.5
+  useMock: false
+  concurrency: 1
+  retries: 2
+
+# File paths
+paths:
+  data: ./data
+  workloads: ./workloads
+  # skills: ~/.claude/skills  # Can be comma-separated or YAML array
+  # allowedWritePath: set via ALLOWED_WRITE_PATH env var
+
+# Logging configuration
+logging:
+  level: info  # debug | info | warn | error
+  timestamps: true
+  colors: true
+
+# Worker-specific settings
+workers:
+  exec:
+    timeout: 30000  # 30 seconds
+    shell: pwsh
+  fetch:
+    timeout: 30000  # 30 seconds
+    userAgent: hs-conductor/0.1.0
