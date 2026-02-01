@@ -18,13 +18,44 @@ Write-Host ""
 if (-not $SkipDependencies) {
     Write-Host "[1/4] Checking Bun..." -ForegroundColor Yellow
     $bunInstalled = $false
+    $bunVersion = $null
+    
+    # Try to run bun --version
     try {
         $bunVersion = bun --version 2>$null
         if ($bunVersion) {
-            Write-Host "  [OK] Bun v$bunVersion detected" -ForegroundColor Green
             $bunInstalled = $true
         }
     } catch {}
+    
+    # If not found via PATH, check common installation locations
+    if (-not $bunInstalled) {
+        $bunPaths = @(
+            "$env:USERPROFILE\scoop\shims\bun.exe",
+            "$env:USERPROFILE\.bun\bin\bun.exe",
+            "$env:ProgramFiles\Bun\bin\bun.exe",
+            "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Oven-sh.Bun_*\bun.exe"
+        )
+        
+        foreach ($path in $bunPaths) {
+            if (Test-Path $path) {
+                try {
+                    $bunVersion = & $path --version 2>$null
+                    if ($bunVersion) {
+                        $bunInstalled = $true
+                        Write-Host "  [OK] Bun v$bunVersion detected (found at: $path)" -ForegroundColor Green
+                        Write-Host "  [!] Bun is installed but not in your current PATH" -ForegroundColor Yellow
+                        Write-Host "  Please restart this terminal to refresh your PATH, then run:" -ForegroundColor Yellow
+                        Write-Host "    .\setup.ps1" -ForegroundColor Cyan
+                        Write-Host ""
+                        exit 0
+                    }
+                } catch {}
+            }
+        }
+    } else {
+        Write-Host "  [OK] Bun v$bunVersion detected" -ForegroundColor Green
+    }
     
     if (-not $bunInstalled) {
         Write-Host "  [X] Bun is not installed" -ForegroundColor Red
