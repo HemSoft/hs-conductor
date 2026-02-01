@@ -43,12 +43,21 @@ if (-not $SkipDependencies) {
                     $bunVersion = & $path --version 2>$null
                     if ($bunVersion) {
                         $bunInstalled = $true
+                        $bunDir = Split-Path -Parent $path
+                        
                         Write-Host "  [OK] Bun v$bunVersion detected (found at: $path)" -ForegroundColor Green
-                        Write-Host "  [!] Bun is installed but not in your current PATH" -ForegroundColor Yellow
-                        Write-Host "  Please restart this terminal to refresh your PATH, then run:" -ForegroundColor Yellow
-                        Write-Host "    .\setup.ps1" -ForegroundColor Cyan
-                        Write-Host ""
-                        exit 0
+                        Write-Host "  [!] Adding Bun directory to session PATH temporarily..." -ForegroundColor Yellow
+                        
+                        # Add to current session PATH if not already there
+                        if ($env:PATH -notlike "*$bunDir*") {
+                            $env:PATH = "$bunDir;$env:PATH"
+                            Write-Host "  [OK] Bun is now available in this session" -ForegroundColor Green
+                        } else {
+                            Write-Host "  [!] Bun directory is in PATH but command not resolving" -ForegroundColor Yellow
+                            Write-Host "  Continuing setup anyway since Bun executable is accessible..." -ForegroundColor Gray
+                        }
+                        
+                        break
                     }
                 } catch {}
             }
