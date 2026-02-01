@@ -8,6 +8,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Check PowerShell version - script requires PowerShell 7+ for proper UTF-8 support
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host ""
+    Write-Host "WARNING: PowerShell $($PSVersionTable.PSVersion) detected" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "This script requires PowerShell 7+ for proper Unicode support." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Options:" -ForegroundColor White
+    Write-Host "  1. Install PowerShell 7: winget install Microsoft.PowerShell" -ForegroundColor Cyan
+    Write-Host "  2. If already installed, run: pwsh .\setup.ps1" -ForegroundColor Cyan
+    Write-Host ""
+    exit 1
+}
+
 Write-Host "" -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "  hs-conductor Setup" -ForegroundColor Cyan
