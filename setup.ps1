@@ -17,12 +17,33 @@ Write-Host ""
 # Check Bun installation
 if (-not $SkipDependencies) {
     Write-Host "[1/4] Checking Bun..." -ForegroundColor Yellow
+    $bunInstalled = $false
     try {
         $bunVersion = bun --version 2>$null
-        Write-Host "  [OK] Bun v$bunVersion detected" -ForegroundColor Green
-    } catch {
-        Write-Host "  [X] Bun not found!" -ForegroundColor Red
-        Write-Host "  Install from: https://bun.sh" -ForegroundColor Yellow
+        if ($bunVersion) {
+            Write-Host "  [OK] Bun v$bunVersion detected" -ForegroundColor Green
+            $bunInstalled = $true
+        }
+    } catch {}
+    
+    if (-not $bunInstalled) {
+        Write-Host "  [X] Bun is not installed" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Bun is required to run hs-conductor." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Installation options:" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  Option 1: Using PowerShell (recommended)" -ForegroundColor Cyan
+        Write-Host "    powershell -c `"irm bun.sh/install.ps1 | iex`"" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Option 2: Using Windows Package Manager" -ForegroundColor Cyan
+        Write-Host "    winget install Oven-sh.Bun" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "After installing, restart this terminal and run setup again:" -ForegroundColor Yellow
+        Write-Host "    .\setup.ps1" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "More info: https://bun.sh" -ForegroundColor DarkGray
+        Write-Host ""
         exit 1
     }
 
