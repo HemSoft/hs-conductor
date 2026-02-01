@@ -19,6 +19,7 @@ if (-not $SkipDependencies) {
     Write-Host "[1/4] Checking Bun..." -ForegroundColor Yellow
     $bunInstalled = $false
     $bunVersion = $null
+    $bunExe = "bun"  # Default to just 'bun' if found in PATH
     
     # Try to run bun --version
     try {
@@ -43,19 +44,11 @@ if (-not $SkipDependencies) {
                     $bunVersion = & $path --version 2>$null
                     if ($bunVersion) {
                         $bunInstalled = $true
+                        $bunExe = $path  # Store full path to use later
                         $bunDir = Split-Path -Parent $path
                         
                         Write-Host "  [OK] Bun v$bunVersion detected (found at: $path)" -ForegroundColor Green
-                        Write-Host "  [!] Adding Bun directory to session PATH temporarily..." -ForegroundColor Yellow
-                        
-                        # Add to current session PATH if not already there
-                        if ($env:PATH -notlike "*$bunDir*") {
-                            $env:PATH = "$bunDir;$env:PATH"
-                            Write-Host "  [OK] Bun is now available in this session" -ForegroundColor Green
-                        } else {
-                            Write-Host "  [!] Bun directory is in PATH but command not resolving" -ForegroundColor Yellow
-                            Write-Host "  Continuing setup anyway since Bun executable is accessible..." -ForegroundColor Gray
-                        }
+                        Write-Host "  [!] Using full path to Bun executable for this session" -ForegroundColor Yellow
                         
                         break
                     }
@@ -194,7 +187,7 @@ if (-not $SkipDependencies) {
 
     # Install dependencies
     Write-Host "[2/4] Installing dependencies..." -ForegroundColor Yellow
-    bun install
+    & $bunExe install
     Write-Host "  [OK] Dependencies installed" -ForegroundColor Green
 } else {
     Write-Host "[1-2/4] Skipping dependency check..." -ForegroundColor Gray
