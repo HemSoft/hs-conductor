@@ -31,20 +31,75 @@ if (-not $SkipDependencies) {
         Write-Host ""
         Write-Host "Bun is required to run hs-conductor." -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "Installation options:" -ForegroundColor White
+        Write-Host "How would you like to install Bun?" -ForegroundColor White
         Write-Host ""
-        Write-Host "  Option 1: Using PowerShell (recommended)" -ForegroundColor Cyan
-        Write-Host "    powershell -c `"irm bun.sh/install.ps1 | iex`"" -ForegroundColor Gray
+        Write-Host "  1. PowerShell installer (recommended)" -ForegroundColor Cyan
+        Write-Host "  2. Windows Package Manager (winget)" -ForegroundColor Cyan
+        Write-Host "  3. Skip - I'll install it manually" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "  Option 2: Using Windows Package Manager" -ForegroundColor Cyan
-        Write-Host "    winget install Oven-sh.Bun" -ForegroundColor Gray
-        Write-Host ""
-        Write-Host "After installing, restart this terminal and run setup again:" -ForegroundColor Yellow
-        Write-Host "    .\setup.ps1" -ForegroundColor Cyan
-        Write-Host ""
-        Write-Host "More info: https://bun.sh" -ForegroundColor DarkGray
-        Write-Host ""
-        exit 1
+        
+        $choice = Read-Host "Enter your choice (1, 2, or 3)"
+        
+        switch ($choice) {
+            "1" {
+                Write-Host ""
+                Write-Host "Installing Bun via PowerShell..." -ForegroundColor Yellow
+                try {
+                    powershell -c "irm bun.sh/install.ps1 | iex"
+                    Write-Host ""
+                    Write-Host "[OK] Bun installed successfully!" -ForegroundColor Green
+                    Write-Host ""
+                    Write-Host "Please restart this terminal for PATH changes to take effect, then run:" -ForegroundColor Yellow
+                    Write-Host "  .\setup.ps1" -ForegroundColor Cyan
+                    Write-Host ""
+                    exit 0
+                } catch {
+                    Write-Host ""
+                    Write-Host "[X] Installation failed: $_" -ForegroundColor Red
+                    Write-Host "Please install manually from: https://bun.sh" -ForegroundColor Yellow
+                    Write-Host ""
+                    exit 1
+                }
+            }
+            "2" {
+                Write-Host ""
+                Write-Host "Installing Bun via winget..." -ForegroundColor Yellow
+                try {
+                    winget install Oven-sh.Bun
+                    Write-Host ""
+                    Write-Host "[OK] Bun installed successfully!" -ForegroundColor Green
+                    Write-Host ""
+                    Write-Host "Please restart this terminal for PATH changes to take effect, then run:" -ForegroundColor Yellow
+                    Write-Host "  .\setup.ps1" -ForegroundColor Cyan
+                    Write-Host ""
+                    exit 0
+                } catch {
+                    Write-Host ""
+                    Write-Host "[X] Installation failed: $_" -ForegroundColor Red
+                    Write-Host "Please install manually from: https://bun.sh" -ForegroundColor Yellow
+                    Write-Host ""
+                    exit 1
+                }
+            }
+            "3" {
+                Write-Host ""
+                Write-Host "Installation options:" -ForegroundColor White
+                Write-Host ""
+                Write-Host "  PowerShell:     powershell -c `"irm bun.sh/install.ps1 | iex`"" -ForegroundColor Gray
+                Write-Host "  Winget:         winget install Oven-sh.Bun" -ForegroundColor Gray
+                Write-Host "  More info:      https://bun.sh" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "After installing, restart your terminal and run: .\setup.ps1" -ForegroundColor Yellow
+                Write-Host ""
+                exit 1
+            }
+            default {
+                Write-Host ""
+                Write-Host "[X] Invalid choice. Please run setup again and choose 1, 2, or 3." -ForegroundColor Red
+                Write-Host ""
+                exit 1
+            }
+        }
     }
 
     # Install dependencies
