@@ -5,7 +5,6 @@
 id: morning-brief
 name: Morning Briefing
 description: Daily briefing combining weather, news, calendar, and priorities
-type: workflow
 version: 1.0.0
 tags:
   - daily

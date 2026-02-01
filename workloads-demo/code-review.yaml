@@ -1,11 +1,9 @@
 # Code Review
-# Type: task
 # Reviews local git changes and provides AI-powered feedback
 
 id: code-review
 name: Code Review Assistant
 description: Reviews your git changes and provides AI-powered code quality feedback
-type: task
 version: 1.0.0
 tags:
   - developer

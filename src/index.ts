@@ -61,10 +61,17 @@ app.get('/workloads', (_req, res) => {
       const path = getWorkloadPath(w.id);
       const issues = path ? errorsByFile.get(path) : undefined;
       
+      // Extract folder from relative path (e.g., "tasks/news-digest.yaml" -> "tasks")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const relativePath = (w as any)._relativePath as string | undefined;
+      const folder = relativePath ? relativePath.replace(/\/[^/]+$/, '').replace(/\\[^\\]+$/, '') : '';
+      // If no subfolder (file in root), folder will be the filename itself, so check
+      const folderPath = folder.includes('.yaml') || folder.includes('.yml') ? '' : folder;
+      
       return {
         id: w.id,
         name: w.name,
-        type: w.type,
+        folder: folderPath,
         description: w.description,
         tags: w.tags,
         validationErrors: issues?.errors,

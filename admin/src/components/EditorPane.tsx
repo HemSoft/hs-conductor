@@ -671,7 +671,7 @@ export function EditorPane({ workload, yamlContent, onRun, resultView, onBackToW
       </div>
       <div className="editor-toolbar">
         <div className="toolbar-left">
-          <span className="workload-type">{workload.type}</span>
+          {workload.folder && <span className="workload-folder">{workload.folder}/</span>}
           <span className="workload-name">{workload.name}</span>
           {hasChanges && <span className="modified-indicator">● Modified</span>}
           {validationErrors.length > 0 && (

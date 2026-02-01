@@ -1,11 +1,9 @@
 # GitHub Activity
-# Type: task
 # Fetches your GitHub activity and generates a summary
 
 id: github-activity
 name: GitHub Activity Summary
 description: Fetches your recent GitHub activity and creates an AI-powered summary
-type: task
 version: 1.0.0
 tags:
   - developer

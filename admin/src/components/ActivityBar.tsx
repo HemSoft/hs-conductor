@@ -1,4 +1,4 @@
-import { Files, Play, Settings } from 'lucide-react';
+import { Files, Settings } from 'lucide-react';
 import './ActivityBar.css';
 
 interface ActivityBarProps {
@@ -8,9 +8,8 @@ interface ActivityBarProps {
 
 export function ActivityBar({ activeView, onViewChange }: ActivityBarProps) {
   const items = [
-    { id: 'explorer', icon: Files, tooltip: 'Explorer', implemented: true },
-    { id: 'runs', icon: Play, tooltip: 'Run History - To be implemented', implemented: false },
-    { id: 'settings', icon: Settings, tooltip: 'Settings - To be implemented', implemented: false },
+    { id: 'explorer', icon: Files, tooltip: 'Explorer' },
+    { id: 'settings', icon: Settings, tooltip: 'Settings', disabled: true },
   ];
 
   return (
@@ -20,11 +19,12 @@ export function ActivityBar({ activeView, onViewChange }: ActivityBarProps) {
         return (
           <button
             key={item.id}
-            className={`activity-bar-item ${activeView === item.id ? 'active' : ''}`}
-            onClick={() => onViewChange(item.id)}
-            title={item.tooltip}
+            className={`activity-bar-item ${activeView === item.id ? 'active' : ''} ${item.disabled ? 'disabled' : ''}`}
+            onClick={() => !item.disabled && onViewChange(item.id)}
+            disabled={item.disabled}
           >
             <IconComponent size={24} strokeWidth={1.5} />
+            <span className="activity-bar-tooltip">{item.tooltip}</span>
           </button>
         );
       })}

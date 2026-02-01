@@ -5,10 +5,13 @@
  * - workloads/: Personal workloads (gitignored)
  * - workloads-demo/: Example workloads (checked into git)
  * 
- * No code changes needed to add new workloads - just add a YAML file.
+ * Supports arbitrary folder organization - workloads can be nested in any folder structure.
+ * Execution mode is inferred from structure (prompt vs steps), not from type field.
+ * 
+ * No code changes needed to add new workloads - just add a YAML file anywhere in workloads/.
  */
-import { readFileSync, readdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
+import { join, relative } from 'path';
 import { parse as parseYaml } from 'yaml';
 import type { WorkloadDefinition } from '../types/workload.js';
 import { validateWorkload } from '../types/workload-schemas.js';
@@ -21,6 +24,9 @@ const WORKLOAD_PATHS = [
 
 // Cache loaded workloads
 let workloadCache: Map<string, WorkloadDefinition> | null = null;
+
+// Track file paths for each workload (for getWorkloadPath)
+let workloadPaths: Map<string, string> = new Map();
 
 // Track validation errors for each workload file
 export interface WorkloadError {
@@ -40,8 +46,35 @@ export function getValidationErrors(): WorkloadError[] {
 }
 
 /**
+ * Recursively find all YAML files in a directory
+ */
+function findYamlFiles(dir: string, basePath: string): string[] {
+  const results: string[] = [];
+  
+  if (!existsSync(dir)) {
+    return results;
+  }
+  
+  const entries = readdirSync(dir);
+  
+  for (const entry of entries) {
+    const fullPath = join(dir, entry);
+    const stat = statSync(fullPath);
+    
+    if (stat.isDirectory()) {
+      // Recurse into subdirectories
+      results.push(...findYamlFiles(fullPath, basePath));
+    } else if (entry.endsWith('.yaml') || entry.endsWith('.yml')) {
+      results.push(fullPath);
+    }
+  }
+  
+  return results;
+}
+
+/**
  * Load all workloads from YAML files
- * Searches both personal (workloads/) and demo (workloads-demo/) directories
+ * Recursively searches workloads/ and workloads-demo/ directories
  * Personal workloads override demo workloads if IDs conflict
  */
 function loadWorkloads(): Map<string, WorkloadDefinition> {
@@ -50,63 +83,41 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
   }
 
   workloadCache = new Map();
+  workloadPaths = new Map();
   validationErrors = [];
-
-  const categories = ['ad-hoc', 'tasks', 'workflows'];
 
   // Load from all search paths (reverse order so personal overrides demo)
   for (const basePath of [...WORKLOAD_PATHS].reverse()) {
-    for (const category of categories) {
-      const categoryPath = join(basePath, category);
+    const yamlFiles = findYamlFiles(basePath, basePath);
 
-      if (!existsSync(categoryPath)) {
-        continue;
-      }
+    for (const filePath of yamlFiles) {
+      try {
+        const content = readFileSync(filePath, 'utf-8');
+        const parsed = parseYaml(content);
 
-      const files = readdirSync(categoryPath).filter(
-        (f) => f.endsWith('.yaml') || f.endsWith('.yml')
-      );
+        // Validate with Zod schema
+        const validation = validateWorkload(parsed, filePath);
 
-      for (const file of files) {
-        try {
-          const filePath = join(categoryPath, file);
-          const content = readFileSync(filePath, 'utf-8');
-          const parsed = parseYaml(content);
-
-          // Validate with Zod schema
-          const validation = validateWorkload(parsed, filePath);
-
-          if (!validation.success) {
-            console.error(validation.error);
-            validationErrors.push({
-              file: filePath,
-              errors: [validation.error],
-              warnings: [],
-            });
-            continue;
-          }
-
-          const workload = validation.data;
-
-          // Verify type matches directory
-          const expectedType =
-            category === 'ad-hoc' ? 'ad-hoc' : category === 'tasks' ? 'task' : 'workflow';
-          if (workload.type !== expectedType) {
-            const warning = `Warning: ${file} has type "${workload.type}" but is in ${category}/ directory (expected "${expectedType}")`;
-            console.warn(warning);
-            validationErrors.push({
-              file: filePath,
-              errors: [],
-              warnings: [warning],
-            });
-          }
-
-          // Store with source info (for debugging)
-          (workload as any)._source = basePath;
-          workloadCache.set(workload.id, workload);
-        } catch (error) {
-          console.error(`Error loading ${file}:`, error instanceof Error ? error.message : error);
+        if (!validation.success) {
+          console.error(validation.error);
+          validationErrors.push({
+            file: filePath,
+            errors: [validation.error],
+            warnings: [],
+          });
+          continue;
         }
+
+        const workload = validation.data;
+
+        // Store with source info (for debugging)
+        (workload as any)._source = basePath;
+        (workload as any)._relativePath = relative(basePath, filePath);
+        
+        workloadCache.set(workload.id, workload);
+        workloadPaths.set(workload.id, filePath);
+      } catch (error) {
+        console.error(`Error loading ${filePath}:`, error instanceof Error ? error.message : error);
       }
     }
   }
@@ -119,6 +130,7 @@ function loadWorkloads(): Map<string, WorkloadDefinition> {
  */
 export function reloadWorkloads(): void {
   workloadCache = null;
+  workloadPaths = new Map();
   validationErrors = [];
   loadWorkloads();
 }
@@ -131,38 +143,17 @@ export function getWorkload(id: string): WorkloadDefinition | undefined {
 }
 
 /**
- * List all workloads, optionally filtered by type
+ * List all workloads
  */
-export function listWorkloads(type?: 'ad-hoc' | 'task' | 'workflow'): WorkloadDefinition[] {
-  const all = Array.from(loadWorkloads().values());
-  if (type) {
-    return all.filter((w) => w.type === type);
-  }
-  return all;
+export function listWorkloads(): WorkloadDefinition[] {
+  return Array.from(loadWorkloads().values());
 }
 
 /**
- * Searches both personal and demo directories
+ * Get the file path for a workload by ID
  */
 export function getWorkloadPath(id: string): string | undefined {
-  const workload = getWorkload(id);
-  if (!workload) return undefined;
-
-  const categoryMap = {
-    'ad-hoc': 'ad-hoc',
-    task: 'tasks',
-    workflow: 'workflows',
-  };
-
-  const category = categoryMap[workload.type];
-  
-  // Check personal workloads first
-  for (const basePath of WORKLOAD_PATHS) {
-    const path = join(basePath, category, `${id}.yaml`);
-    if (existsSync(path)) {
-      return path;
-    }
-  }
-  
-  return undefined;
+  // Ensure workloads are loaded
+  loadWorkloads();
+  return workloadPaths.get(id);
 }

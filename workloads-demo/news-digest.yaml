@@ -5,7 +5,6 @@
 id: news-digest
 name: News Digest
 description: Fetches news from RSS feeds and creates an AI-summarized digest
-type: task
 version: 1.0.0
 tags:
   - news

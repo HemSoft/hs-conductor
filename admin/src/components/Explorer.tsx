@@ -2,7 +2,7 @@ import { useEffect, useState, forwardRef, useImperativeHandle, useRef, useCallba
 import { Allotment } from 'allotment';
 import YAML from 'yaml';
 import { 
-  Zap, ClipboardList, GitBranch, Package, FileText, 
+  Folder, FolderOpen, FileText, 
   Play, Pause, ChevronDown, ChevronRight, Calendar, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { CronBuilder } from './CronBuilder';
@@ -51,7 +51,7 @@ function useContextMenuPosition(
 export interface Workload {
   id: string;
   name: string;
-  type: string;
+  folder: string;
   description?: string;
   validationErrors?: string[];
   validationWarnings?: string[];
@@ -114,7 +114,7 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['ad-hoc', 'task', 'workflow']));
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['', '__root__']));
   const [schedulesExpanded, setSchedulesExpanded] = useState(true);
   
   // Context menu state
@@ -457,33 +457,30 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
     }
   };
 
-  const toggleType = (type: string) => {
-    setExpandedTypes(prev => {
+  const toggleFolder = (folder: string) => {
+    setExpandedFolders(prev => {
       const next = new Set(prev);
-      if (next.has(type)) {
-        next.delete(type);
+      if (next.has(folder)) {
+        next.delete(folder);
       } else {
-        next.add(type);
+        next.add(folder);
       }
       return next;
     });
   };
 
   const groupedWorkloads = workloads.reduce((acc, workload) => {
-    const type = workload.type || 'other';
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(workload);
+    const folder = workload.folder || '';
+    if (!acc[folder]) acc[folder] = [];
+    acc[folder].push(workload);
     return acc;
   }, {} as Record<string, Workload[]>);
 
-  const typeOrder = ['ad-hoc', 'task', 'workflow'];
-  const sortedTypes = Object.keys(groupedWorkloads).sort((a, b) => {
-    const aIndex = typeOrder.indexOf(a);
-    const bIndex = typeOrder.indexOf(b);
-    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
+  // Sort folders alphabetically, with root folder first
+  const sortedFolders = Object.keys(groupedWorkloads).sort((a, b) => {
+    if (a === '') return -1;
+    if (b === '') return 1;
+    return a.localeCompare(b);
   });
 
   const handleRefresh = () => {
@@ -521,24 +518,24 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
               )}
               {!loading && !error && (
                 <div className="tree">
-                  {sortedTypes.map(type => (
-                    <div key={type} className="tree-group">
+                  {sortedFolders.map(folder => (
+                    <div key={folder || '__root__'} className="tree-group">
                       <div 
                         className="tree-group-header"
-                        onClick={() => toggleType(type)}
+                        onClick={() => toggleFolder(folder)}
                       >
                         <span className="chevron">
-                          {expandedTypes.has(type) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          {expandedFolders.has(folder) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </span>
                         <span className="type-icon">
-                          {type === 'ad-hoc' ? <Zap size={16} /> : type === 'task' ? <ClipboardList size={16} /> : type === 'workflow' ? <GitBranch size={16} /> : <Package size={16} />}
+                          {expandedFolders.has(folder) ? <FolderOpen size={16} /> : <Folder size={16} />}
                         </span>
-                        <span className="type-name">{type}</span>
-                        <span className="type-count">{groupedWorkloads[type].length}</span>
+                        <span className="type-name">{folder || '(root)'}</span>
+                        <span className="type-count">{groupedWorkloads[folder].length}</span>
                       </div>
-                      {expandedTypes.has(type) && (
+                      {expandedFolders.has(folder) && (
                         <div className="tree-group-items">
-                          {groupedWorkloads[type].map(workload => {
+                          {groupedWorkloads[folder].map(workload => {
                             const isRunning = runningWorkloadIds?.has(workload.id);
                             const hasErrors = workload.validationErrors && workload.validationErrors.length > 0;
                             const hasWarnings = workload.validationWarnings && workload.validationWarnings.length > 0;
@@ -745,7 +742,7 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
                   >
                     <option value="">Select a workload...</option>
                     {workloads.map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.type})</option>
+                      <option key={w.id} value={w.id}>{w.name}{w.folder ? ` (${w.folder})` : ''}</option>
                     ))}
                   </select>
                 </div>

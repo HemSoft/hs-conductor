@@ -4,18 +4,38 @@ Add new workloads by creating YAML files - no code changes required.
 
 ## Workload Types
 
-| Type | Use Case | Folder |
-|------|----------|--------|
-| **ad-hoc** | Single AI call | `workloads/ad-hoc/` |
-| **task** | Sequential steps | `workloads/tasks/` |
-| **workflow** | Complex with conditionals | `workloads/workflows/` |
+| Type | Use Case | Description |
+|------|----------|-------------|
+| **ad-hoc** | Single AI call | Quick prompts with optional inputs |
+| **task** | Sequential steps | Multi-step pipelines (A → B → C) |
+| **workflow** | Complex with conditionals | Parallel execution, dependencies, branching |
+
+## Folder Organization
+
+Workloads live in `workloads/` (personal, gitignored) or `workloads-demo/` (examples).
+
+You can organize workloads however you like - flat or in subfolders:
+
+```
+workloads/
+  joke.yaml              # Flat at root
+  weather.yaml
+  daily/                  # Grouped by use case
+    morning-brief.yaml
+    news-digest.yaml
+  dev-tools/              # Grouped by domain
+    code-review.yaml
+    pr-summary.yaml
+```
+
+The `type` field in each YAML determines how it runs, not the folder location.
 
 ## Adding an Ad-Hoc Workload
 
-Create a YAML file in `workloads/ad-hoc/`:
+Create a YAML file anywhere in `workloads/`:
 
 ```yaml
-# workloads/ad-hoc/my-task.yaml
+# workloads/my-task.yaml
 id: my-task
 name: My Task
 description: What it does
@@ -43,7 +63,7 @@ That's it! The workload is automatically available.
 ## Adding a Task (Sequential Steps)
 
 ```yaml
-# workloads/tasks/my-pipeline.yaml
+# workloads/my-pipeline.yaml
 id: my-pipeline
 name: My Pipeline
 description: Multi-step process
@@ -71,7 +91,7 @@ steps:
 ## Adding a Workflow (Parallel + Conditionals)
 
 ```yaml
-# workloads/workflows/my-workflow.yaml
+# workloads/my-workflow.yaml
 id: my-workflow
 name: My Workflow
 description: Complex process

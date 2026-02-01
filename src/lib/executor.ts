@@ -8,11 +8,10 @@ import { EVENTS } from '../inngest/events.js';
 import { getWorkload } from './workload-loader.js';
 import { createManifest, writeManifest } from './run-manifest.js';
 import type {
-  AdHocDefinition,
-  TaskDefinition,
-  WorkflowDefinition,
+  WorkloadDefinition,
   WorkloadInstance,
 } from '../types/workload.js';
+import { isPromptWorkload, hasParallelSteps } from '../types/workload.js';
 
 /**
  * Generate a human-readable timestamp for instance IDs (local timezone)
@@ -54,32 +53,26 @@ export async function executeWorkload(
   await writeManifest(runPath, manifest);
   console.log(`[executor] Created manifest: ${runPath}/run.json`);
 
-  // Dispatch based on type
-  switch (definition.type) {
-    case 'ad-hoc':
-      await executeAdHoc(definition, instance, runPath);
-      break;
-    case 'task':
-      await executeTask(definition, instance, runPath);
-      break;
-    case 'workflow':
-      await executeWorkflow(definition, instance, runPath);
-      break;
+  // Dispatch based on structure
+  if (isPromptWorkload(definition)) {
+    await executePromptWorkload(definition, instance, runPath);
+  } else if (definition.steps && definition.steps.length > 0) {
+    await executeStepWorkload(definition, instance, runPath);
   }
 
   return instance;
 }
 
 /**
- * Execute an ad-hoc workload (single AI call)
+ * Execute a prompt-based workload (single AI call)
  */
-async function executeAdHoc(
-  definition: AdHocDefinition,
+async function executePromptWorkload(
+  definition: WorkloadDefinition,
   instance: WorkloadInstance,
   runPath: string
 ): Promise<void> {
   // Interpolate input into prompt
-  let prompt = definition.prompt;
+  let prompt = definition.prompt!;
   for (const [key, value] of Object.entries(instance.input)) {
     prompt = prompt.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
   }
@@ -91,7 +84,7 @@ async function executeAdHoc(
     name: EVENTS.TASK_READY,
     data: {
       planId: instance.instanceId,
-      taskId: 'ad-hoc-001',
+      taskId: 'prompt-001',
       worker: 'ai-worker',
       config: {
         prompt,
@@ -106,14 +99,14 @@ async function executeAdHoc(
 }
 
 /**
- * Execute a task workload (sequential steps)
+ * Execute a step-based workload (sequential or parallel)
  */
-async function executeTask(
-  definition: TaskDefinition,
+async function executeStepWorkload(
+  definition: WorkloadDefinition,
   instance: WorkloadInstance,
   runPath: string
 ): Promise<void> {
-  // For tasks, we send a plan.created event and let task-manager handle sequencing
+  // Send a plan.created event and let task-manager handle sequencing/parallel execution
   await inngest.send({
     name: EVENTS.PLAN_CREATED,
     data: {
@@ -121,27 +114,8 @@ async function executeTask(
       templateId: definition.id,
       runPath,
       steps: definition.steps,
-    },
-  });
-}
-
-/**
- * Execute a workflow (complex with conditionals)
- */
-async function executeWorkflow(
-  definition: WorkflowDefinition,
-  instance: WorkloadInstance,
-  runPath: string
-): Promise<void> {
-  // For workflows, same pattern but with dependency tracking
-  await inngest.send({
-    name: EVENTS.PLAN_CREATED,
-    data: {
-      planId: instance.instanceId,
-      templateId: definition.id,
-      runPath,
-      steps: definition.steps,
-      isWorkflow: true,
+      // Has parallel execution if any step has dependsOn or parallel flag
+      isWorkflow: hasParallelSteps(definition),
     },
   });
 }

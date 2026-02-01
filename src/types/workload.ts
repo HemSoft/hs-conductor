@@ -1,15 +1,12 @@
 /**
  * Workload Type Definitions
  *
- * Three categories of workloads:
- * - ad-hoc: Single AI execution, no dependencies
- * - task: Sequential steps (A → B → C)
- * - workflow: Complex with conditionals and branching
+ * Unified workload model - execution mode is inferred from structure:
+ * - Has `prompt` → simple AI execution
+ * - Has `steps` → multi-step execution (sequential or parallel based on dependsOn)
  *
  * These types map to YAML definitions in workloads/
  */
-
-export type WorkloadType = 'ad-hoc' | 'task' | 'workflow';
 
 /**
  * Alert configuration for workloads
@@ -22,31 +19,13 @@ export interface AlertConfig {
    * - JavaScript expression: Evaluated with `output` variable containing the result string
    *   Example: "output.includes('severe weather')"
    */
-  condition: 'always' | string;
+  condition: string;
   
   /**
    * Custom message for the alert (optional)
    * If not provided, uses workload name + "completed"
    */
   message?: string;
-}
-
-/**
- * Base definition shared by all workload types
- */
-export interface WorkloadBase {
-  id: string; // Unique identifier, e.g., "weather"
-  name: string; // Human-readable name
-  description: string;
-  type: WorkloadType;
-  version: string;
-  tags?: string[];
-  
-  /**
-   * Optional alert configuration
-   * When specified, triggers a Windows toast notification based on the condition
-   */
-  alert?: AlertConfig;
 }
 
 /**
@@ -60,56 +39,69 @@ export interface InputField {
 }
 
 /**
- * Ad-hoc: Single AI execution
- * Use when: You just need AI to do one thing
+ * Step definition - supports sequential and parallel execution
  */
-export interface AdHocDefinition extends WorkloadBase {
-  type: 'ad-hoc';
-  prompt: string; // The AI prompt template (supports {{variable}})
-  model?: string; // Optional model override
-  input?: Record<string, InputField>; // Expected inputs
-  output: {
-    format: 'json' | 'markdown' | 'text';
-  };
-}
-
-/**
- * Task: Sequential steps
- * Use when: Multiple steps that run in order
- */
-export interface TaskDefinition extends WorkloadBase {
-  type: 'task';
-  steps: TaskStep[];
-}
-
-export interface TaskStep {
+export interface Step {
   id: string;
   name: string;
   worker: 'exec-worker' | 'fetch-worker' | 'file-worker' | 'ai-worker';
   config: Record<string, unknown>;
   input?: string[]; // References to previous step outputs
   output: string;
-}
-
-/**
- * Workflow: Complex with conditionals
- * Use when: Branching logic, parallel execution, or complex dependencies
- */
-export interface WorkflowDefinition extends WorkloadBase {
-  type: 'workflow';
-  steps: WorkflowStep[];
-}
-
-export interface WorkflowStep extends TaskStep {
+  // Optional parallel execution support
   dependsOn?: string[]; // Step IDs this depends on
-  condition?: string; // Expression to evaluate (e.g., "steps.fetch.status == 'success'")
+  condition?: string; // Expression to evaluate
   parallel?: boolean; // Can run in parallel with siblings
 }
 
 /**
- * Union type for all workload definitions
+ * Unified Workload Definition
+ * 
+ * Either has:
+ * - `prompt` + `output` for simple AI workloads
+ * - `steps` for multi-step workloads
  */
-export type WorkloadDefinition = AdHocDefinition | TaskDefinition | WorkflowDefinition;
+export interface WorkloadDefinition {
+  // Required fields
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  
+  // Optional metadata
+  tags?: string[];
+  alert?: AlertConfig;
+  input?: Record<string, InputField>;
+  
+  // Simple workload (prompt-based)
+  prompt?: string;
+  model?: string;
+  output?: {
+    format: 'json' | 'markdown' | 'text';
+  };
+  
+  // Step-based workload
+  steps?: Step[];
+  
+  // Internal metadata (added by loader)
+  _source?: string;
+  _relativePath?: string;
+}
+
+/**
+ * Helper to determine if workload is prompt-based
+ */
+export function isPromptWorkload(workload: WorkloadDefinition): boolean {
+  return !!workload.prompt;
+}
+
+/**
+ * Helper to determine if workload has parallel steps
+ */
+export function hasParallelSteps(workload: WorkloadDefinition): boolean {
+  if (!workload.steps) return false;
+  return workload.steps.some(s => s.dependsOn || s.parallel);
+}
 
 /**
  * Runtime instance of an executing workload
@@ -169,7 +161,6 @@ export interface RunManifest {
   instanceId: string; // e.g., "news-digest-2026-01-28-045744"
   workloadId: string; // Reference to definition
   workloadName: string; // Human-readable name
-  workloadType: WorkloadType; // ad-hoc, task, workflow
   
   // Status
   status: RunStatus;
@@ -181,7 +172,7 @@ export interface RunManifest {
   // Input
   input: Record<string, unknown>; // User-provided inputs
   
-  // Execution (for tasks/workflows)
+  // Execution (for step-based workloads)
   steps?: RunStepRecord[];
   
   // Outputs

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Zap, ClipboardList, GitBranch, Package, FileText, Calendar, Loader2, Clock } from 'lucide-react';
+import { Package, Calendar, Loader2, Clock } from 'lucide-react';
 import './StatusBar.css';
 
 interface WorkloadStats {
   total: number;
-  byType: Record<string, number>;
+  folderCount: number;
 }
 
 interface StatusBarProps {
@@ -40,13 +40,7 @@ export function StatusBar({ workloadStats, scheduleCount = 0, runningCount = 0 }
   };
 
   // Default stats if none provided
-  const stats = workloadStats || { total: 0, byType: {} };
-  
-  const typeIcons: Record<string, React.ReactNode> = {
-    'ad-hoc': <Zap size={12} />,
-    'task': <ClipboardList size={12} />,
-    'workflow': <GitBranch size={12} />,
-  };
+  const stats = workloadStats || { total: 0, folderCount: 0 };
 
   return (
     <div className="status-bar">
@@ -56,14 +50,6 @@ export function StatusBar({ workloadStats, scheduleCount = 0, runningCount = 0 }
           <span className="status-icon"><Package size={12} /></span>
           <span className="status-text">{stats.total} workloads</span>
         </div>
-        
-        {/* Type breakdown */}
-        {Object.entries(stats.byType).map(([type, count]) => (
-          <div key={type} className="status-item status-item-secondary" data-tooltip={`${type} workloads`}>
-            <span className="status-icon">{typeIcons[type] || <FileText size={12} />}</span>
-            <span className="status-text">{count}</span>
-          </div>
-        ))}
         
         <div className="status-divider" />
         

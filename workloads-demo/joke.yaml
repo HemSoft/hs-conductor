@@ -1,7 +1,6 @@
 id: joke
 name: Tell a Joke
 description: Generates a programming joke on a given topic
-type: ad-hoc
 version: 1.0.0
 tags:
   - fun

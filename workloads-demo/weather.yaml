@@ -1,11 +1,9 @@
 # Weather
-# Type: ad-hoc
 # Get current weather for a location
 
 id: weather
 name: Get Weather
 description: Fetches current weather for a location and returns well-formatted JSON
-type: ad-hoc
 version: 1.0.0
 tags:
   - weather

@@ -14,7 +14,7 @@ import './App.css';
 
 interface WorkloadStats {
   total: number;
-  byType: Record<string, number>;
+  folderCount: number;
 }
 
 interface EditorModalState {
@@ -36,7 +36,7 @@ function App() {
   const [runningWorkloadIds, setRunningWorkloadIds] = useState<Set<string>>(new Set());
   
   // Status bar stats
-  const [workloadStats, setWorkloadStats] = useState<WorkloadStats>({ total: 0, byType: {} });
+  const [workloadStats, setWorkloadStats] = useState<WorkloadStats>({ total: 0, folderCount: 0 });
   const [scheduleCount, setScheduleCount] = useState(0);
 
   // Pane sizes (persisted to localStorage)
@@ -68,11 +68,8 @@ function App() {
       
       if (workloadsRes.ok) {
         const workloads = await workloadsRes.json();
-        const byType: Record<string, number> = {};
-        workloads.forEach((w: Workload) => {
-          byType[w.type] = (byType[w.type] || 0) + 1;
-        });
-        setWorkloadStats({ total: workloads.length, byType });
+        const folders = new Set(workloads.map((w: Workload) => w.folder || ''));
+        setWorkloadStats({ total: workloads.length, folderCount: folders.size });
       }
       
       if (schedulesRes.ok) {

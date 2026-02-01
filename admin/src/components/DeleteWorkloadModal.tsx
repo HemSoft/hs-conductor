@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './DeleteWorkloadModal.css';
 
 interface DeleteWorkloadModalProps {
-  workload: { id: string; name: string; type: string };
+  workload: { id: string; name: string; folder?: string };
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }
@@ -13,7 +13,6 @@ export function DeleteWorkloadModal({ workload, onConfirm, onClose }: DeleteWork
   const [error, setError] = useState<string | null>(null);
 
   const isConfirmed = confirmText === workload.name;
-  const typeIcon = workload.type === 'ad-hoc' ? '⚡' : workload.type === 'task' ? '📋' : '🔄';
 
   const handleDelete = async () => {
     if (!isConfirmed) return;
@@ -38,10 +37,10 @@ export function DeleteWorkloadModal({ workload, onConfirm, onClose }: DeleteWork
         
         <div className="delete-modal-body">
           <div className="workload-preview">
-            <span className="preview-icon">{typeIcon}</span>
+            <span className="preview-icon">📄</span>
             <div className="preview-info">
               <span className="preview-name">{workload.name}</span>
-              <span className="preview-id">{workload.id}</span>
+              <span className="preview-id">{workload.folder ? `${workload.folder}/` : ''}{workload.id}</span>
             </div>
           </div>
           

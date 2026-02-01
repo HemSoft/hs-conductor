@@ -74,11 +74,20 @@ function generateId(name: string): string {
 function parseYamlToForm(yaml: string): WorkloadFormData | null {
   try {
     const parsed = YAML.parse(yaml);
+    // Infer type from structure: has prompt → ad-hoc, has steps → task/workflow
+    let inferredType: WorkloadType = 'ad-hoc';
+    if (parsed.steps && parsed.steps.length > 0) {
+      // Check if any step has workflow-specific fields (dependsOn, condition, parallel)
+      const hasWorkflowFields = parsed.steps.some((s: WorkloadStep) => 
+        s.dependsOn || s.condition || s.parallel !== undefined
+      );
+      inferredType = hasWorkflowFields ? 'workflow' : 'task';
+    }
     return {
       id: parsed.id || '',
       name: parsed.name || '',
       description: parsed.description || '',
-      type: parsed.type || 'ad-hoc',
+      type: inferredType,
       version: parsed.version || '1.0.0',
       tags: parsed.tags || [],
       prompt: parsed.prompt || '',
@@ -97,7 +106,6 @@ function formToYaml(form: WorkloadFormData): string {
     id: form.id,
     name: form.name,
     description: form.description,
-    type: form.type,
     version: form.version,
   };
 
@@ -105,6 +113,7 @@ function formToYaml(form: WorkloadFormData): string {
     doc.tags = form.tags;
   }
 
+  // Determine structure from form.type (UI state) - ad-hoc gets prompt, task/workflow get steps
   if (form.type === 'ad-hoc') {
     doc.prompt = form.prompt || '';
     if (form.model) {
@@ -346,12 +355,13 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
       setError('ID is required');
       return;
     }
+    // Validate based on UI mode selection
     if (form.type === 'ad-hoc' && !form.prompt?.trim()) {
-      setError('Prompt is required for ad-hoc workloads');
+      setError('Prompt is required for prompt-based workloads');
       return;
     }
     if ((form.type === 'task' || form.type === 'workflow') && (!form.steps || form.steps.length === 0)) {
-      setError('At least one step is required for task/workflow');
+      setError('At least one step is required for step-based workloads');
       return;
     }
 
@@ -367,7 +377,6 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
   };
 
   const title = mode === 'create' ? 'Create Workload' : mode === 'duplicate' ? 'Duplicate Workload' : 'Edit Workload';
-  const typeIcon = form.type === 'ad-hoc' ? '⚡' : form.type === 'task' ? '📋' : '🔄';
 
   return (
     <div className="workload-editor-overlay" onClick={onClose}>
@@ -375,7 +384,7 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
         {/* Header */}
         <div className="workload-editor-header">
           <div className="header-title">
-            <span className="header-icon">{typeIcon}</span>
+            <span className="header-icon">📄</span>
             <h2>{title}</h2>
           </div>
           <div className="header-actions">
@@ -401,17 +410,17 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
         <div className="workload-editor-body">
           {viewMode === 'form' ? (
             <div className="form-view">
-              {/* Type Selector - only for create mode */}
+              {/* Structure Selector - only for create mode */}
               {mode === 'create' && (
                 <div className="type-selector">
-                  <label>Workload Type</label>
+                  <label>Workload Structure</label>
                   <div className="type-options">
                     <button
                       className={`type-option ${form.type === 'ad-hoc' ? 'selected' : ''}`}
                       onClick={() => handleTypeChange('ad-hoc')}
                     >
                       <span className="type-option-icon">⚡</span>
-                      <span className="type-option-label">Ad-hoc</span>
+                      <span className="type-option-label">Prompt</span>
                       <span className="type-option-desc">Single AI execution</span>
                     </button>
                     <button
@@ -419,7 +428,7 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
                       onClick={() => handleTypeChange('task')}
                     >
                       <span className="type-option-icon">📋</span>
-                      <span className="type-option-label">Task</span>
+                      <span className="type-option-label">Steps</span>
                       <span className="type-option-desc">Sequential steps</span>
                     </button>
                     <button
@@ -427,8 +436,8 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
                       onClick={() => handleTypeChange('workflow')}
                     >
                       <span className="type-option-icon">🔄</span>
-                      <span className="type-option-label">Workflow</span>
-                      <span className="type-option-desc">Complex with dependencies</span>
+                      <span className="type-option-label">Steps + Dependencies</span>
+                      <span className="type-option-desc">Parallel with dependencies</span>
                     </button>
                   </div>
                 </div>

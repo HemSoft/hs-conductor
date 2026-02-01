@@ -10,11 +10,11 @@ import type {
   RunManifest,
   RunOutputRecord,
   RunStatus,
+  Step,
   StepStatus,
   WorkloadDefinition,
-  TaskStep,
-  WorkflowStep,
 } from '../types/workload.js';
+import { isPromptWorkload } from '../types/workload.js';
 
 const MANIFEST_FILENAME = 'run.json';
 
@@ -31,7 +31,6 @@ export function createManifest(
     instanceId,
     workloadId: definition.id,
     workloadName: definition.name,
-    workloadType: definition.type,
     status: 'pending',
     startedAt: new Date().toISOString(),
     input,
@@ -40,9 +39,9 @@ export function createManifest(
     createdBy,
   };
 
-  // Initialize steps for tasks/workflows
-  if (definition.type === 'task' || definition.type === 'workflow') {
-    const steps = definition.steps as (TaskStep | WorkflowStep)[];
+  // Initialize steps for step-based workloads
+  if (definition.steps && definition.steps.length > 0) {
+    const steps = definition.steps as Step[];
     manifest.steps = steps.map((step) => ({
       id: step.id,
       name: step.name,
@@ -52,14 +51,12 @@ export function createManifest(
     }));
 
     // Determine primary output (last step's output)
-    if (steps.length > 0) {
-      const lastStep = steps[steps.length - 1];
-      manifest.primaryOutput = lastStep.output;
-    }
+    const lastStep = steps[steps.length - 1];
+    manifest.primaryOutput = lastStep.output;
   }
 
-  // For ad-hoc, set the expected output
-  if (definition.type === 'ad-hoc') {
+  // For prompt-based workloads, set the expected output
+  if (isPromptWorkload(definition)) {
     const format = definition.output?.format || 'text';
     const outputFile = `result.${format === 'json' ? 'json' : 'md'}`;
     manifest.primaryOutput = outputFile;
