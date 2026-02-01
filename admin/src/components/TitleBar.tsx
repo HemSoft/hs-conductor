@@ -133,8 +133,8 @@ export function TitleBar({ onReload, onFullScreen }: TitleBarProps) {
       </div>
       <div className="title-bar-title">
         <span className="title-brand">HemSoft Developments</span>
-        <span className="title-separator">—</span>
-        <span className="title-product">Conductor</span>
+        <Cpu size={14} className="title-icon" />
+        <span className="title-product">CONDUCTOR</span>
         <span className="title-version">V0.1.0</span>
       </div>
 

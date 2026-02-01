@@ -114,6 +114,7 @@ async function executeStepWorkload(
       templateId: definition.id,
       runPath,
       steps: definition.steps,
+      input: instance.input, // Pass input for variable interpolation
       // Has parallel execution if any step has dependsOn or parallel flag
       isWorkflow: hasParallelSteps(definition),
     },

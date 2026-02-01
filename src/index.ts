@@ -12,13 +12,16 @@ import { inngest } from './inngest/client.js';
 import { aiWorker } from './workers/ai-worker.js';
 import { execWorker } from './workers/exec-worker.js';
 import { fetchWorker } from './workers/fetch-worker.js';
+import { countdownWorker } from './workers/countdown-worker.js';
+import { alertWorker } from './workers/alert-worker.js';
 import { planOrchestrator, taskProgressHandler } from './workers/task-manager.js';
 import { schedulerWorker, scheduledWorkloadHandler } from './workers/scheduler.js';
 import { listWorkloads, getWorkload, reloadWorkloads, getWorkloadPath, getValidationErrors } from './lib/workload-loader.js';
 import { validateWorkload } from './types/workload-schemas.js';
 import YAML from 'yaml';
 import { executeWorkload } from './lib/executor.js';
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, rmdirSync, renameSync, unlinkSync } from 'fs';
+import { join, dirname } from 'path';
 import { CronExpressionParser } from 'cron-parser';
 
 const app = express();
@@ -282,6 +285,293 @@ app.delete('/workloads/:id', (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       error: 'Failed to delete workload',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Move a workload to a different folder
+app.post('/workloads/:id/move', (req, res) => {
+  const { id } = req.params;
+  const { targetFolder } = req.body;
+  
+  if (typeof targetFolder !== 'string') {
+    res.status(400).json({ error: 'Target folder required' });
+    return;
+  }
+  
+  const yamlPath = getWorkloadPath(id);
+  if (!yamlPath) {
+    res.status(404).json({ error: 'Workload not found' });
+    return;
+  }
+  
+  // Get the filename from current path
+  const filename = yamlPath.split(/[/\\]/).pop();
+  if (!filename) {
+    res.status(500).json({ error: 'Could not determine filename' });
+    return;
+  }
+  
+  // Sanitize target folder - only allow alphanumeric, dash, underscore, and forward slash
+  const sanitizedFolder = targetFolder
+    .replace(/[^a-zA-Z0-9-_/]/g, '')
+    .replace(/\/+/g, '/')
+    .replace(/^\/|\/$/g, '');
+  
+  // Build new path
+  const WORKLOADS_BASE = process.env.WORKLOADS_DIR || 'workloads';
+  const newPath = sanitizedFolder 
+    ? join(WORKLOADS_BASE, sanitizedFolder, filename)
+    : join(WORKLOADS_BASE, filename);
+  
+  // Check if target already exists
+  if (existsSync(newPath) && newPath !== yamlPath) {
+    res.status(409).json({ error: 'A workload with that name already exists in the target folder' });
+    return;
+  }
+  
+  // Ensure target directory exists
+  const targetDir = dirname(newPath);
+  if (!existsSync(targetDir)) {
+    try {
+      mkdirSync(targetDir, { recursive: true });
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Failed to create target folder',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return;
+    }
+  }
+  
+  try {
+    renameSync(yamlPath, newPath);
+    reloadWorkloads();
+    res.json({ 
+      success: true, 
+      message: `Moved workload to ${sanitizedFolder || 'root'}`,
+      newFolder: sanitizedFolder || ''
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to move workload',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// ============ FOLDER MANAGEMENT ============
+
+const WORKLOADS_DIR = process.env.WORKLOADS_DIR || 'workloads';
+
+/**
+ * Helper to get all folders recursively
+ */
+function getAllFolders(basePath: string, relativePath: string = ''): string[] {
+  const folders: string[] = [];
+  const fullPath = relativePath ? join(basePath, relativePath) : basePath;
+  
+  if (!existsSync(fullPath)) return folders;
+  
+  const entries = readdirSync(fullPath);
+  for (const entry of entries) {
+    const entryPath = join(fullPath, entry);
+    const relPath = relativePath ? `${relativePath}/${entry}` : entry;
+    
+    if (statSync(entryPath).isDirectory()) {
+      folders.push(relPath);
+      folders.push(...getAllFolders(basePath, relPath));
+    }
+  }
+  
+  return folders;
+}
+
+/**
+ * Check if a folder is empty (no files, only empty subfolders count as empty)
+ */
+function isFolderEmpty(folderPath: string): boolean {
+  if (!existsSync(folderPath)) return true;
+  
+  const entries = readdirSync(folderPath);
+  for (const entry of entries) {
+    const entryPath = join(folderPath, entry);
+    const stat = statSync(entryPath);
+    
+    if (stat.isFile()) return false;
+    if (stat.isDirectory() && !isFolderEmpty(entryPath)) return false;
+  }
+  
+  return true;
+}
+
+// List all folders in workloads directory
+app.get('/folders', (_req, res) => {
+  try {
+    const folders = getAllFolders(WORKLOADS_DIR);
+    
+    // Get workload count per folder
+    const workloads = listWorkloads();
+    const folderCounts: Record<string, number> = { '': 0 };
+    
+    for (const folder of folders) {
+      folderCounts[folder] = 0;
+    }
+    
+    for (const w of workloads) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const relativePath = (w as any)._relativePath as string | undefined;
+      const folder = relativePath ? dirname(relativePath).replace(/\\/g, '/') : '';
+      const normalizedFolder = folder === '.' ? '' : folder;
+      if (folderCounts[normalizedFolder] !== undefined) {
+        folderCounts[normalizedFolder]++;
+      } else {
+        folderCounts['']++;
+      }
+    }
+    
+    res.json(folders.map(f => ({
+      path: f,
+      workloadCount: folderCounts[f] || 0,
+      isEmpty: isFolderEmpty(join(WORKLOADS_DIR, f)),
+    })));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list folders' });
+  }
+});
+
+// Create a new folder
+app.post('/folders', (req, res) => {
+  const { path: folderPath } = req.body;
+  
+  if (!folderPath || typeof folderPath !== 'string') {
+    res.status(400).json({ error: 'Folder path required' });
+    return;
+  }
+  
+  // Sanitize path - only allow alphanumeric, dash, underscore, and forward slash
+  const sanitized = folderPath.replace(/[^a-zA-Z0-9-_/]/g, '').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+  if (!sanitized) {
+    res.status(400).json({ error: 'Invalid folder path' });
+    return;
+  }
+  
+  const fullPath = join(WORKLOADS_DIR, sanitized);
+  
+  if (existsSync(fullPath)) {
+    res.status(409).json({ error: 'Folder already exists' });
+    return;
+  }
+  
+  try {
+    mkdirSync(fullPath, { recursive: true });
+    reloadWorkloads();
+    res.json({ success: true, path: sanitized, message: `Created folder: ${sanitized}` });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to create folder',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Rename a folder
+app.put('/folders/*', (req, res) => {
+  const oldPath = (req.params as unknown as Record<string, string>)[0];
+  const { newName } = req.body;
+  
+  if (!oldPath) {
+    res.status(400).json({ error: 'Folder path required' });
+    return;
+  }
+  
+  if (!newName || typeof newName !== 'string') {
+    res.status(400).json({ error: 'New name required' });
+    return;
+  }
+  
+  // Sanitize new name - only allow alphanumeric, dash, underscore
+  const sanitizedName = newName.replace(/[^a-zA-Z0-9-_]/g, '');
+  if (!sanitizedName) {
+    res.status(400).json({ error: 'Invalid folder name' });
+    return;
+  }
+  
+  const fullOldPath = join(WORKLOADS_DIR, oldPath);
+  
+  if (!existsSync(fullOldPath)) {
+    res.status(404).json({ error: 'Folder not found' });
+    return;
+  }
+  
+  // Calculate new path (keep parent directory, change only the folder name)
+  const parentDir = dirname(oldPath);
+  const newPath = parentDir === '.' ? sanitizedName : `${parentDir}/${sanitizedName}`;
+  const fullNewPath = join(WORKLOADS_DIR, newPath);
+  
+  if (existsSync(fullNewPath)) {
+    res.status(409).json({ error: 'A folder with that name already exists' });
+    return;
+  }
+  
+  try {
+    renameSync(fullOldPath, fullNewPath);
+    reloadWorkloads();
+    res.json({ success: true, oldPath, newPath, message: `Renamed folder: ${oldPath} → ${newPath}` });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to rename folder',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Delete a folder (optionally with contents if force=true)
+app.delete('/folders/*', (req, res) => {
+  const folderPath = (req.params as unknown as Record<string, string>)[0];
+  const force = req.query.force === 'true';
+  
+  if (!folderPath) {
+    res.status(400).json({ error: 'Folder path required' });
+    return;
+  }
+  
+  const fullPath = join(WORKLOADS_DIR, folderPath);
+  
+  if (!existsSync(fullPath)) {
+    res.status(404).json({ error: 'Folder not found' });
+    return;
+  }
+  
+  const isEmpty = isFolderEmpty(fullPath);
+  
+  if (!isEmpty && !force) {
+    res.status(400).json({ error: 'Cannot delete non-empty folder. Use force=true to delete with contents.' });
+    return;
+  }
+  
+  try {
+    // Recursively delete directory and all contents
+    const deleteRecursive = (path: string) => {
+      const entries = readdirSync(path);
+      for (const entry of entries) {
+        const entryPath = join(path, entry);
+        if (statSync(entryPath).isDirectory()) {
+          deleteRecursive(entryPath);
+        } else {
+          unlinkSync(entryPath);
+        }
+      }
+      rmdirSync(path);
+    };
+    
+    deleteRecursive(fullPath);
+    reloadWorkloads();
+    res.json({ success: true, message: `Deleted folder: ${folderPath}`, force });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to delete folder',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -728,6 +1018,7 @@ app.get('/schedules/upcoming', (_req, res) => {
       workloadId: string;
       cron: string;
       nextOccurrence: string;
+      previousOccurrence?: string;
       enabled: boolean;
     }> = [];
     
@@ -741,12 +1032,23 @@ app.get('/schedules/upcoming', (_req, res) => {
             const expr = CronExpressionParser.parse(schedule.cron);
             const next = expr.next().toDate();
             
+            // Calculate previous occurrence for progress bar
+            let previousOccurrence: string | undefined;
+            try {
+              const prevExpr = CronExpressionParser.parse(schedule.cron);
+              const prev = prevExpr.prev().toDate();
+              previousOccurrence = prev.toISOString();
+            } catch {
+              // Previous occurrence calculation failed, leave undefined
+            }
+            
             upcoming.push({
               scheduleId: schedule.id,
               scheduleName: schedule.name,
               workloadId: schedule.workloadId,
               cron: schedule.cron,
               nextOccurrence: next.toISOString(),
+              previousOccurrence,
               enabled: schedule.enabled,
             });
           } catch (cronErr) {
@@ -863,7 +1165,7 @@ app.use(
   '/api/inngest',
   serve({
     client: inngest,
-    functions: [aiWorker, execWorker, fetchWorker, planOrchestrator, taskProgressHandler, schedulerWorker, scheduledWorkloadHandler],
+    functions: [aiWorker, execWorker, fetchWorker, countdownWorker, alertWorker, planOrchestrator, taskProgressHandler, schedulerWorker, scheduledWorkloadHandler],
   })
 );
 

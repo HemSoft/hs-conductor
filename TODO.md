@@ -5,8 +5,8 @@
 | 1 | Fix Admin Panel Hover Text Styling | High | ✅ Done |
 | 2 | Remove Redundant "Run History" Nav Entry | High | ✅ Done |
 | 3 | Consolidate Workloads Structure | Medium | ✅ Done |
-| 4 | Folder Management UI | Medium | Not Started |
-| 5 | Drag-and-Drop Workload Organization | Medium | Not Started |
+| 4 | Folder Management UI | Medium | ✅ Done |
+| 5 | Drag-and-Drop Workload Organization | Medium | ✅ Done |
 | 6 | Configuration System | Medium | Not Started |
 | 7 | Address Sanitization Strategy | Medium | Not Started |
 
@@ -62,30 +62,46 @@ Workload organization is completely flexible - structure your folders however yo
 
 ---
 
-### 4. Folder Management UI
+### 4. Folder Management UI ✅
 
-Add UI controls for managing workload folders:
-- Create new folders via context menu or button
-- Rename folders
-- Delete empty folders
-- Visual feedback for folder operations
+**Completed:** Added full folder management capabilities to the Admin Panel.
 
-**Location:** `admin/src/components/Explorer.tsx`
+**Backend API Endpoints:**
+- `GET /folders` - List all folders with workload counts
+- `POST /folders` - Create new folder (supports nested paths with `/`)
+- `PUT /folders/:path` - Rename folder
+- `DELETE /folders/:path` - Delete empty folder
+
+**Frontend Features:**
+- New Folder button (📁) in workloads header
+- Right-click context menu on folders with:
+  - Rename Folder
+  - Delete Folder
+  - New Folder
+- Modal dialog for creating/renaming folders
+- Input validation and error feedback
+- Automatic refresh after folder operations
+
+**Location:** `src/index.ts`, `admin/src/components/Explorer.tsx`, `admin/src/components/Explorer.css`
 
 ---
 
-### 5. Drag-and-Drop Workload Organization
+### 5. Drag-and-Drop Workload Organization ✅
 
-Enable drag-and-drop for organizing workloads:
-- Drag workloads into/out of folders
-- Drag workloads between folders
-- Visual drop indicators
-- Backend API to move workload files
+**Completed:** Implemented native HTML5 drag-and-drop for workload organization.
 
-**Considerations:**
-- Use react-dnd or native HTML5 drag API
-- Need new endpoint: `POST /workloads/:id/move`
-- Handle file system operations safely
+**Backend:**
+- `POST /workloads/:id/move` - Moves workload YAML file to target folder
+- Handles folder validation, path sanitization, and auto-creates folders if needed
+
+**Frontend Features:**
+- Workload items are draggable with grab cursor indicator
+- Folders act as drop targets with visual feedback (blue dashed outline)
+- Dragging workload becomes semi-transparent to indicate drag state
+- Target folder automatically expands after drop to show moved workload
+- Works with nested folder hierarchies
+
+**Location:** `src/index.ts`, `admin/src/components/Explorer.tsx`, `admin/src/components/Explorer.css`
 
 ---
 

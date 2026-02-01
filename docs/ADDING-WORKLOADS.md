@@ -127,6 +127,8 @@ steps:
 | `fetch-worker` | HTTP requests, RSS feeds | API calls, data retrieval |
 | `file-worker` | File aggregation, transformation | File I/O operations |
 | `ai-worker` | AI inference via Copilot SDK | Tasks requiring intelligence |
+| `countdown-worker` | Wait for duration or until time | Delays, timed workflows |
+| `alert-worker` | Send notifications | Toast notifications, sounds, alerts |
 
 ### Worker: exec-worker
 
@@ -156,6 +158,97 @@ steps:
       filter: "^SUCCESS:"  # Only return lines starting with SUCCESS:
       timeout: 60000
     output: script-result.txt
+```
+
+### Worker: countdown-worker
+
+Wait for a specified duration or until a specific time. Use to delay subsequent tasks in a workflow.
+
+**Config:**
+
+- `duration`: Wait duration string (e.g., "30s", "5m", "1h", "2h30m", "1d")
+- `until`: ISO 8601 datetime to wait until (alternative to duration)
+- `message`: Optional message describing what we're waiting for
+
+Note: Only one of `duration` or `until` should be specified. If both are provided, `until` takes precedence.
+
+**Example (duration):**
+
+```yaml
+steps:
+  - id: wait-5-min
+    name: Wait 5 minutes
+    worker: countdown-worker
+    config:
+      duration: "5m"
+      message: "Waiting before next step"
+    output: countdown-result.json
+```
+
+**Example (until specific time):**
+
+```yaml
+steps:
+  - id: wait-until-9am
+    name: Wait until 9am
+    worker: countdown-worker
+    config:
+      until: "2026-02-01T09:00:00"
+      message: "Waiting for market open"
+    output: countdown-result.json
+```
+
+### Worker: alert-worker
+
+Send alerts and notifications through various channels. Use to notify when something completes or needs attention.
+
+**Config:**
+
+- `title`: Alert title (required)
+- `message`: Alert message body (required)
+- `type`: Alert type - "toast" | "sound" | "log" | "all" (default: "toast")
+- `sound`: Sound type - "default" | "reminder" | "alarm" | "none" (default: "default")
+- `priority`: Priority level - "low" | "normal" | "high" | "urgent" (default: "normal")
+- `persist`: Whether to persist alert to data/alerts/ (default: true)
+
+**Example:**
+
+```yaml
+steps:
+  - id: notify-complete
+    name: Send completion notification
+    worker: alert-worker
+    config:
+      title: "Task Complete"
+      message: "Your workflow has finished!"
+      type: toast
+      sound: reminder
+      priority: normal
+    output: alert-result.json
+```
+
+**Timed Reminder Pattern (countdown + alert):**
+
+```yaml
+steps:
+  - id: countdown
+    name: Wait for timer
+    worker: countdown-worker
+    config:
+      duration: "30m"
+      message: "Timer for meeting reminder"
+    output: countdown-result.json
+
+  - id: alert
+    name: Send reminder
+    worker: alert-worker
+    dependsOn: [countdown]
+    config:
+      title: "Meeting Reminder"
+      message: "Your meeting starts in 5 minutes!"
+      type: all
+      sound: alarm
+    output: alert-result.json
 ```
 
 ## API Endpoints

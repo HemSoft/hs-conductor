@@ -16,7 +16,7 @@ export type TaskStatus =
   | 'completed' // Finished successfully
   | 'failed'; // Task failed
 
-export type WorkerType = 'fetch-worker' | 'file-worker' | 'ai-worker';
+export type WorkerType = 'exec-worker' | 'fetch-worker' | 'file-worker' | 'ai-worker' | 'countdown-worker' | 'alert-worker';
 
 export interface TaskDefinition {
   id: string; // e.g., "TASK-001"

@@ -10,7 +10,7 @@ export const PlanCreatedSchema = z.object({
 export const TaskReadySchema = z.object({
   planId: z.string(),
   taskId: z.string(),
-  worker: z.enum(['exec-worker', 'fetch-worker', 'file-worker', 'ai-worker']),
+  worker: z.enum(['exec-worker', 'fetch-worker', 'file-worker', 'ai-worker', 'countdown-worker', 'alert-worker']),
   config: z.record(z.unknown()),
   input: z.array(z.string()).optional(),
   output: z.string(),

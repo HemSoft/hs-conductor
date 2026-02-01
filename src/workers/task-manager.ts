@@ -15,13 +15,17 @@ import {
   markRunCompleted,
   updateStepStatus,
 } from '../lib/run-manifest.js';
-import type { TaskStep } from '../types/workload.js';
+import type { Step } from '../types/workload.js';
+
+// Alias for clarity in task manager context
+type TaskStep = Step;
 
 interface PlanCreatedData {
   planId: string;
   templateId: string;
   runPath: string;
   steps: TaskStep[];
+  input?: Record<string, unknown>;
   isWorkflow?: boolean;
 }
 
@@ -34,7 +38,7 @@ interface TaskCompletedData {
 
 /**
  * In-memory tracking of plan states
- * Maps planId -> { steps, completedTasks, runPath }
+ * Maps planId -> { steps, completedTasks, runPath, input }
  */
 const planStates = new Map<
   string,
@@ -42,8 +46,55 @@ const planStates = new Map<
     steps: TaskStep[];
     completedTasks: Set<string>;
     runPath: string;
+    input: Record<string, unknown>;
   }
 >();
+
+/**
+ * Interpolate {{variable}} placeholders in config values using input parameters
+ */
+function interpolateConfig(
+  config: Record<string, unknown>,
+  input: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  
+  for (const [key, value] of Object.entries(config)) {
+    if (typeof value === 'string') {
+      // Replace {{variable}} patterns with input values
+      let interpolated = value;
+      for (const [inputKey, inputValue] of Object.entries(input)) {
+        interpolated = interpolated.replace(
+          new RegExp(`\\{\\{\\s*${inputKey}\\s*\\}\\}`, 'g'),
+          String(inputValue)
+        );
+      }
+      result[key] = interpolated;
+    } else if (Array.isArray(value)) {
+      // Handle arrays of strings
+      result[key] = value.map(item => {
+        if (typeof item === 'string') {
+          let interpolated = item;
+          for (const [inputKey, inputValue] of Object.entries(input)) {
+            interpolated = interpolated.replace(
+              new RegExp(`\\{\\{\\s*${inputKey}\\s*\\}\\}`, 'g'),
+              String(inputValue)
+            );
+          }
+          return interpolated;
+        }
+        return item;
+      });
+    } else if (typeof value === 'object' && value !== null) {
+      // Recursively interpolate nested objects
+      result[key] = interpolateConfig(value as Record<string, unknown>, input);
+    } else {
+      result[key] = value;
+    }
+  }
+  
+  return result;
+}
 
 /**
  * Get tasks that are ready to execute (all dependencies satisfied)
@@ -100,7 +151,7 @@ export const planOrchestrator = inngest.createFunction(
   { event: EVENTS.PLAN_CREATED },
   async ({ event, step }) => {
     const data = event.data as PlanCreatedData;
-    const { planId, steps, runPath } = data;
+    const { planId, steps, runPath, input = {} } = data;
 
     console.log(`[task-manager] Plan created: ${planId} with ${steps.length} steps`);
 
@@ -109,11 +160,12 @@ export const planOrchestrator = inngest.createFunction(
       await markRunStarted(runPath);
     });
 
-    // Initialize plan state
+    // Initialize plan state (including input for interpolation)
     planStates.set(planId, {
       steps,
       completedTasks: new Set(),
       runPath,
+      input,
     });
 
     // Find initially ready tasks (no input dependencies)
@@ -140,7 +192,7 @@ export const planOrchestrator = inngest.createFunction(
             planId,
             taskId: task.id,
             worker: task.worker,
-            config: task.config || {},
+            config: interpolateConfig(task.config || {}, input),
             input: task.input || [],
             output: task.output,
             runPath,
@@ -228,7 +280,7 @@ export const taskProgressHandler = inngest.createFunction(
             planId,
             taskId: task.id,
             worker: task.worker,
-            config: task.config || {},
+            config: interpolateConfig(task.config || {}, state!.input),
             input: task.input || [],
             output: task.output,
             runPath,

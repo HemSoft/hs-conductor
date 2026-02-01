@@ -14,6 +14,7 @@ export interface RunInfo {
   // For scheduled runs
   scheduleName?: string;
   nextOccurrence?: string;
+  previousOccurrence?: string;
 }
 
 interface FileDetail {
@@ -31,6 +32,7 @@ interface UpcomingSchedule {
   workloadId: string;
   cron: string;
   nextOccurrence: string;
+  previousOccurrence?: string;
   enabled: boolean;
 }
 
@@ -193,6 +195,7 @@ export function RightSidebar({ onRunSelect, onRunDeleted, onRunningWorkloadsChan
         createdAt: new Date().toISOString(),
         scheduleName: s.scheduleName,
         nextOccurrence: s.nextOccurrence,
+        previousOccurrence: s.previousOccurrence,
         summary: `Next run: ${formatRelativeTime(new Date(s.nextOccurrence))}`,
       }));
       
@@ -429,6 +432,12 @@ export function RightSidebar({ onRunSelect, onRunDeleted, onRunningWorkloadsChan
                               : formatTime(run.createdAt)}
                           </span>
                         </div>
+                        {run.status === 'scheduled' && run.nextOccurrence && (
+                          <ScheduleProgressBar
+                            nextOccurrence={run.nextOccurrence}
+                            previousOccurrence={run.previousOccurrence}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -454,6 +463,120 @@ function formatRelativeTime(date: Date): string {
   if (diffMins < 60) return `in ${diffMins} minute${diffMins === 1 ? '' : 's'}`;
   if (diffHours < 24) return `in ${diffHours} hour${diffHours === 1 ? '' : 's'}`;
   return `in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+}
+
+// Calculate progress color based on percentage (red -> orange -> yellow -> green)
+function getProgressColor(progress: number): string {
+  // Clamp progress to 0-100
+  const p = Math.max(0, Math.min(100, progress));
+  
+  // Color stops: red(0%) -> orange(33%) -> yellow(66%) -> green(100%)
+  if (p <= 33) {
+    // Red to Orange
+    const t = p / 33;
+    const r = 220;
+    const g = Math.round(60 + t * 100); // 60 -> 160
+    const b = Math.round(60 - t * 20);  // 60 -> 40
+    return `rgb(${r}, ${g}, ${b})`;
+  } else if (p <= 66) {
+    // Orange to Yellow
+    const t = (p - 33) / 33;
+    const r = Math.round(220 + t * 20); // 220 -> 240
+    const g = Math.round(160 + t * 60); // 160 -> 220
+    const b = 40;
+    return `rgb(${r}, ${g}, ${b})`;
+  } else {
+    // Yellow to Green
+    const t = (p - 66) / 34;
+    const r = Math.round(240 - t * 140); // 240 -> 100
+    const g = Math.round(220 - t * 20);  // 220 -> 200
+    const b = Math.round(40 + t * 60);   // 40 -> 100
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+}
+
+// Schedule progress bar component
+interface ScheduleProgressBarProps {
+  nextOccurrence: string;
+  previousOccurrence?: string;
+}
+
+function ScheduleProgressBar({ nextOccurrence, previousOccurrence }: ScheduleProgressBarProps) {
+  const [progress, setProgress] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState('');
+  
+  useEffect(() => {
+    const updateProgress = () => {
+      const now = new Date().getTime();
+      const next = new Date(nextOccurrence).getTime();
+      
+      // Use previousOccurrence if available, otherwise estimate based on interval to next
+      let prev: number;
+      if (previousOccurrence) {
+        prev = new Date(previousOccurrence).getTime();
+      } else {
+        // Fallback: estimate interval as time from now to next, doubled
+        // This gives a reasonable progress when we don't know the previous run
+        const timeToNext = next - now;
+        prev = now - timeToNext;
+      }
+      
+      const totalInterval = next - prev;
+      const elapsed = now - prev;
+      
+      // Calculate progress percentage (0-100)
+      const progressPercent = totalInterval > 0 
+        ? Math.min(100, Math.max(0, (elapsed / totalInterval) * 100))
+        : 0;
+      
+      setProgress(progressPercent);
+      
+      // Calculate time remaining
+      const remaining = next - now;
+      if (remaining <= 0) {
+        setTimeRemaining('now');
+      } else if (remaining < 60000) {
+        setTimeRemaining('<1m');
+      } else if (remaining < 3600000) {
+        const mins = Math.ceil(remaining / 60000);
+        setTimeRemaining(`${mins}m`);
+      } else if (remaining < 86400000) {
+        const hours = Math.floor(remaining / 3600000);
+        const mins = Math.ceil((remaining % 3600000) / 60000);
+        setTimeRemaining(`${hours}h ${mins}m`);
+      } else {
+        const days = Math.floor(remaining / 86400000);
+        const hours = Math.floor((remaining % 86400000) / 3600000);
+        setTimeRemaining(`${days}d ${hours}h`);
+      }
+    };
+    
+    updateProgress();
+    const interval = setInterval(updateProgress, 1000);
+    return () => clearInterval(interval);
+  }, [nextOccurrence, previousOccurrence]);
+  
+  const progressColor = getProgressColor(progress);
+  
+  return (
+    <div className="schedule-progress-container">
+      <div className="schedule-progress-bar">
+        <div
+          className="schedule-progress-fill"
+          style={{
+            width: `${progress}%`,
+            backgroundColor: progressColor,
+          }}
+        />
+      </div>
+      <div className="schedule-progress-label">
+        <span className="progress-text" style={{ color: progressColor }}>
+          {Math.round(progress)}%
+        </span>
+        <span className="time-remaining">{timeRemaining}</span>
+      </div>
+    </div>
+  );
 }
 
 // Helper to format duration in milliseconds

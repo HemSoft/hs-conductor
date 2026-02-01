@@ -6,7 +6,7 @@ import './WorkloadEditorModal.css';
 
 export type WorkloadType = 'ad-hoc' | 'task' | 'workflow';
 export type OutputFormat = 'json' | 'markdown' | 'text';
-export type WorkerType = 'fetch-worker' | 'file-worker' | 'ai-worker';
+export type WorkerType = 'fetch-worker' | 'file-worker' | 'ai-worker' | 'exec-worker' | 'countdown-worker' | 'alert-worker';
 export type InputFieldType = 'string' | 'number' | 'boolean';
 
 export interface InputField {
@@ -22,6 +22,8 @@ export interface StepConfig {
   format?: 'rss' | 'json';
   type?: string;
   filter?: string;
+  command?: string;
+  cwd?: string;
   [key: string]: unknown;
 }
 
@@ -56,7 +58,7 @@ export interface WorkloadFormData {
 
 interface WorkloadEditorModalProps {
   mode: 'create' | 'edit' | 'duplicate';
-  workload?: { id: string; name: string; type: string };
+  workload?: { id: string; name: string };
   yamlContent?: string;
   onSave: (yaml: string, isNew: boolean) => Promise<void>;
   onClose: () => void;
@@ -379,8 +381,8 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
   const title = mode === 'create' ? 'Create Workload' : mode === 'duplicate' ? 'Duplicate Workload' : 'Edit Workload';
 
   return (
-    <div className="workload-editor-overlay" onClick={onClose}>
-      <div className="workload-editor-modal" onClick={e => e.stopPropagation()}>
+    <div className="workload-editor-overlay">
+      <div className="workload-editor-modal">
         {/* Header */}
         <div className="workload-editor-header">
           <div className="header-title">
@@ -445,7 +447,7 @@ export function WorkloadEditorModal({ mode, workload: _workload, yamlContent, on
 
               {/* Basic Info */}
               <div className="form-section">
-                <h3>Basic Information</h3>
+                <h3>Workload Information</h3>
                 <div className="form-row">
                   <div className="form-field">
                     <label>Name <span className="required">*</span></label>
@@ -753,7 +755,12 @@ function StepEditor({
 }: StepEditorProps) {
   const [expanded, setExpanded] = useState(true);
 
-  const workerIcon = step.worker === 'ai-worker' ? '🤖' : step.worker === 'fetch-worker' ? '🌐' : '📁';
+  const workerIcon = step.worker === 'ai-worker' ? '🤖' 
+    : step.worker === 'exec-worker' ? '⚙️' 
+    : step.worker === 'fetch-worker' ? '🌐' 
+    : step.worker === 'countdown-worker' ? '⏱️' 
+    : step.worker === 'alert-worker' ? '🔔' 
+    : '📁';
 
   return (
     <div className="step-editor">
@@ -773,6 +780,22 @@ function StepEditor({
         <div className="step-body">
           <div className="form-row">
             <div className="form-field">
+              <label>Name</label>
+              <input
+                type="text"
+                value={step.name}
+                onChange={e => {
+                  const name = e.target.value;
+                  const autoId = name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '') || 'step';
+                  onChange({ ...step, name, id: autoId });
+                }}
+                placeholder="Step Name"
+              />
+            </div>
+            <div className="form-field">
               <label>Step ID</label>
               <input
                 type="text"
@@ -780,15 +803,7 @@ function StepEditor({
                 onChange={e => onChange({ ...step, id: e.target.value })}
                 placeholder="step-id"
               />
-            </div>
-            <div className="form-field">
-              <label>Name</label>
-              <input
-                type="text"
-                value={step.name}
-                onChange={e => onChange({ ...step, name: e.target.value })}
-                placeholder="Step Name"
-              />
+              <span className="field-hint">Auto-generated from name</span>
             </div>
           </div>
           <div className="form-row">
@@ -799,6 +814,9 @@ function StepEditor({
                 onChange={e => onChange({ ...step, worker: e.target.value as WorkerType, config: {} })}
               >
                 <option value="ai-worker">🤖 AI Worker</option>
+                <option value="alert-worker">🔔 Alert Worker</option>
+                <option value="countdown-worker">⏱️ Countdown Worker</option>
+                <option value="exec-worker">⚙️ Exec Worker</option>
                 <option value="fetch-worker">🌐 Fetch Worker</option>
                 <option value="file-worker">📁 File Worker</option>
               </select>
@@ -825,6 +843,29 @@ function StepEditor({
                 rows={3}
               />
             </div>
+          )}
+
+          {step.worker === 'exec-worker' && (
+            <>
+              <div className="form-field">
+                <label>Command</label>
+                <input
+                  type="text"
+                  value={step.config.command || ''}
+                  onChange={e => onChange({ ...step, config: { ...step.config, command: e.target.value } })}
+                  placeholder="git diff HEAD"
+                />
+              </div>
+              <div className="form-field">
+                <label>Working Directory</label>
+                <input
+                  type="text"
+                  value={step.config.cwd || ''}
+                  onChange={e => onChange({ ...step, config: { ...step.config, cwd: e.target.value } })}
+                  placeholder=". (current directory)"
+                />
+              </div>
+            </>
           )}
 
           {step.worker === 'fetch-worker' && (
@@ -860,6 +901,101 @@ function StepEditor({
                     onChange={e => onChange({ ...step, config: { ...step.config, filter: e.target.value } })}
                     placeholder="Filter expression"
                   />
+                </div>
+              </div>
+            </>
+          )}
+
+          {step.worker === 'countdown-worker' && (
+            <>
+              <div className="form-row">
+                <div className="form-field">
+                  <label>Duration</label>
+                  <input
+                    type="text"
+                    value={step.config.duration || ''}
+                    onChange={e => onChange({ ...step, config: { ...step.config, duration: e.target.value } })}
+                    placeholder="30s, 5m, 1h30m"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Or Wait Until</label>
+                  <input
+                    type="text"
+                    value={step.config.until || ''}
+                    onChange={e => onChange({ ...step, config: { ...step.config, until: e.target.value } })}
+                    placeholder="2026-02-01T09:00:00"
+                  />
+                </div>
+              </div>
+              <div className="form-field">
+                <label>Message (optional)</label>
+                <input
+                  type="text"
+                  value={step.config.message || ''}
+                  onChange={e => onChange({ ...step, config: { ...step.config, message: e.target.value } })}
+                  placeholder="What are we waiting for?"
+                />
+              </div>
+            </>
+          )}
+
+          {step.worker === 'alert-worker' && (
+            <>
+              <div className="form-field">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={step.config.title || ''}
+                  onChange={e => onChange({ ...step, config: { ...step.config, title: e.target.value } })}
+                  placeholder="Alert title"
+                />
+              </div>
+              <div className="form-field">
+                <label>Message</label>
+                <textarea
+                  value={step.config.message || ''}
+                  onChange={e => onChange({ ...step, config: { ...step.config, message: e.target.value } })}
+                  placeholder="Alert message body"
+                  rows={2}
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-field">
+                  <label>Type</label>
+                  <select
+                    value={step.config.type || 'toast'}
+                    onChange={e => onChange({ ...step, config: { ...step.config, type: e.target.value } })}
+                  >
+                    <option value="toast">Toast</option>
+                    <option value="sound">Sound Only</option>
+                    <option value="log">Log Only</option>
+                    <option value="all">All Channels</option>
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Sound</label>
+                  <select
+                    value={step.config.sound || 'default'}
+                    onChange={e => onChange({ ...step, config: { ...step.config, sound: e.target.value } })}
+                  >
+                    <option value="default">Default</option>
+                    <option value="reminder">Reminder</option>
+                    <option value="alarm">Alarm</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Priority</label>
+                  <select
+                    value={step.config.priority || 'normal'}
+                    onChange={e => onChange({ ...step, config: { ...step.config, priority: e.target.value } })}
+                  >
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
                 </div>
               </div>
             </>

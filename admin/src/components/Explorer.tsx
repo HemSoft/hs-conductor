@@ -2,11 +2,19 @@ import { useEffect, useState, forwardRef, useImperativeHandle, useRef, useCallba
 import { Allotment } from 'allotment';
 import YAML from 'yaml';
 import { 
-  Folder, FolderOpen, FileText, 
+  Folder, FolderOpen, FolderPlus, FileText, 
   Play, Pause, ChevronDown, ChevronRight, Calendar, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { CronBuilder } from './CronBuilder';
 import './Explorer.css';
+
+// Drag-and-drop types
+interface DragData {
+  type: 'workload';
+  workloadId: string;
+  workloadName: string;
+  sourceFolder: string;
+}
 
 // Smart positioning hook for context menus
 function useContextMenuPosition(
@@ -112,6 +120,7 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
 ) {
   const [workloads, setWorkloads] = useState<Workload[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['', '__root__']));
@@ -141,10 +150,24 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
   const [workloadContextMenu, setWorkloadContextMenu] = useState<ContextMenuState & { workload?: Workload }>({ visible: false, x: 0, y: 0 });
   const workloadContextMenuRef = useRef<HTMLDivElement>(null);
   
+  // Folder context menu state
+  const [folderContextMenu, setFolderContextMenu] = useState<ContextMenuState & { folder: string | null }>({ visible: false, x: 0, y: 0, folder: null });
+  const folderContextMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Folder modal state
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [folderModalMode, setFolderModalMode] = useState<'create' | 'rename'>('create');
+  const [folderName, setFolderName] = useState('');
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+  const [parentFolder, setParentFolder] = useState<string | null>(null);
+  const [folderError, setFolderError] = useState<string | null>(null);
+  const [savingFolder, setSavingFolder] = useState(false);
+  
   // Use smart positioning for context menus to avoid clipping
   const contextMenuPos = useContextMenuPosition(contextMenu.visible, contextMenu.x, contextMenu.y, contextMenuRef);
   const scheduleContextMenuPos = useContextMenuPosition(scheduleContextMenu.visible, scheduleContextMenu.x, scheduleContextMenu.y, scheduleContextMenuRef);
   const workloadContextMenuPos = useContextMenuPosition(workloadContextMenu.visible, workloadContextMenu.x, workloadContextMenu.y, workloadContextMenuRef);
+  const folderContextMenuPos = useContextMenuPosition(folderContextMenu.visible, folderContextMenu.x, folderContextMenu.y, folderContextMenuRef);
   
   // Workload input parameters state
   const [workloadInputDefs, setWorkloadInputDefs] = useState<Record<string, InputDefinition>>({});
@@ -158,6 +181,10 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
     return saved ? JSON.parse(saved) : [400, 150];
   });
   const explorerPaneSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Drag-and-drop state
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [draggingWorkload, setDraggingWorkload] = useState<string | null>(null);
 
   // Save explorer pane sizes when changed (debounced)
   const handleExplorerPaneChange = useCallback((sizes: number[]) => {
@@ -202,9 +229,22 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
     }
   };
 
+  const fetchFolders = async () => {
+    try {
+      const response = await fetch('http://localhost:2900/folders');
+      if (!response.ok) throw new Error('Failed to fetch folders');
+      const data = await response.json();
+      // API returns array of { path, workloadCount, isEmpty }
+      setFolders(Array.isArray(data) ? data.map((f: { path: string }) => f.path) : []);
+    } catch (err) {
+      console.error('Failed to fetch folders:', err);
+    }
+  };
+
   useEffect(() => {
     fetchWorkloads();
     fetchSchedules();
+    fetchFolders();
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -219,11 +259,13 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
       const clickedInsideContextMenu = contextMenuRef.current?.contains(target);
       const clickedInsideScheduleContextMenu = scheduleContextMenuRef.current?.contains(target);
       const clickedInsideWorkloadContextMenu = workloadContextMenuRef.current?.contains(target);
+      const clickedInsideFolderContextMenu = folderContextMenuRef.current?.contains(target);
       
-      if (!clickedInsideContextMenu && !clickedInsideScheduleContextMenu && !clickedInsideWorkloadContextMenu) {
+      if (!clickedInsideContextMenu && !clickedInsideScheduleContextMenu && !clickedInsideWorkloadContextMenu && !clickedInsideFolderContextMenu) {
         setContextMenu({ visible: false, x: 0, y: 0 });
         setScheduleContextMenu({ visible: false, x: 0, y: 0 });
         setWorkloadContextMenu({ visible: false, x: 0, y: 0 });
+        setFolderContextMenu({ visible: false, x: 0, y: 0, folder: null });
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -400,6 +442,128 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
     setWorkloadContextMenu({ visible: false, x: 0, y: 0 });
   };
 
+  // Folder management handlers
+  const handleFolderContextMenu = (e: React.MouseEvent, folder: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFolderContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      folder: folder || null, // Use null for root folder
+    });
+  };
+
+  const handleCreateFolder = () => {
+    setFolderModalMode('create');
+    setFolderName('');
+    setRenamingFolder(null);
+    setParentFolder(folderContextMenu.folder); // Capture parent folder before clearing context menu
+    setFolderError(null);
+    setShowFolderModal(true);
+    setFolderContextMenu({ visible: false, x: 0, y: 0, folder: null });
+  };
+
+  const handleRenameFolder = (folder: string) => {
+    setFolderModalMode('rename');
+    setFolderName(folder.split('/').pop() || folder);
+    setRenamingFolder(folder);
+    setFolderError(null);
+    setShowFolderModal(true);
+    setFolderContextMenu({ visible: false, x: 0, y: 0, folder: null });
+  };
+
+  const handleDeleteFolder = async (folder: string, forceDelete = false) => {
+    setFolderContextMenu({ visible: false, x: 0, y: 0, folder: null });
+    
+    // Check folder contents first
+    const workloadsInFolder = workloads.filter(w => w.folder === folder || w.folder.startsWith(folder + '/'));
+    
+    if (workloadsInFolder.length > 0 && !forceDelete) {
+      const confirmed = confirm(
+        `⚠️ Warning: Folder "${folder}" contains ${workloadsInFolder.length} workload(s):\n\n` +
+        workloadsInFolder.slice(0, 5).map(w => `  • ${w.name}`).join('\n') +
+        (workloadsInFolder.length > 5 ? `\n  ... and ${workloadsInFolder.length - 5} more` : '') +
+        `\n\nThis will permanently delete the folder and ALL its contents.\n\nAre you sure you want to continue?`
+      );
+      if (!confirmed) return;
+      
+      // Double confirm for destructive action
+      const doubleConfirm = confirm(`Final confirmation: Delete "${folder}" and ${workloadsInFolder.length} workload(s)?`);
+      if (!doubleConfirm) return;
+    } else if (!forceDelete) {
+      if (!confirm(`Delete empty folder "${folder}"?`)) {
+        return;
+      }
+    }
+    
+    try {
+      const response = await fetch(`http://localhost:2900/folders/${encodeURIComponent(folder)}?force=${workloadsInFolder.length > 0}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete folder');
+        return;
+      }
+      
+      fetchWorkloads();
+      fetchFolders();
+    } catch (err) {
+      console.error('Failed to delete folder:', err);
+      alert('Failed to delete folder');
+    }
+  };
+
+  const handleSaveFolder = async () => {
+    setFolderError(null);
+    
+    if (!folderName.trim()) {
+      setFolderError('Folder name is required');
+      return;
+    }
+    
+    setSavingFolder(true);
+    try {
+      if (folderModalMode === 'create') {
+        // Construct full path including parent folder if applicable
+        const fullPath = parentFolder ? `${parentFolder}/${folderName.trim()}` : folderName.trim();
+        const response = await fetch('http://localhost:2900/folders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: fullPath }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to create folder');
+        }
+      } else if (renamingFolder) {
+        const response = await fetch(`http://localhost:2900/folders/${encodeURIComponent(renamingFolder)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newName: folderName.trim() }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to rename folder');
+        }
+      }
+      
+      setShowFolderModal(false);
+      setParentFolder(null);
+      fetchWorkloads();
+      fetchFolders();
+    } catch (err) {
+      console.error('Folder operation failed:', err);
+      setFolderError(err instanceof Error ? err.message : 'Operation failed');
+    } finally {
+      setSavingFolder(false);
+    }
+  };
+
   const handleSaveSchedule = async () => {
     console.log('handleSaveSchedule called', { newSchedule, scheduleParams, workloadInputDefs, editingSchedule });
     setFormError(null);
@@ -476,16 +640,117 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
     return acc;
   }, {} as Record<string, Workload[]>);
 
-  // Sort folders alphabetically, with root folder first
-  const sortedFolders = Object.keys(groupedWorkloads).sort((a, b) => {
-    if (a === '') return -1;
-    if (b === '') return 1;
-    return a.localeCompare(b);
-  });
+  // Ensure empty folders from the server are included
+  for (const folder of folders) {
+    if (!groupedWorkloads[folder]) {
+      groupedWorkloads[folder] = [];
+    }
+  }
+
+  // Get direct child folders of a parent folder
+  const getChildFolders = (parentFolder: string): string[] => {
+    const prefix = parentFolder === '' ? '' : parentFolder + '/';
+    return Object.keys(groupedWorkloads)
+      .filter(f => {
+        if (f === parentFolder) return false;
+        if (parentFolder === '') {
+          // For root, get folders without any '/'
+          return f !== '' && !f.includes('/');
+        }
+        // For nested folders, get folders that start with parent/ and have no additional /
+        if (!f.startsWith(prefix)) return false;
+        const remainder = f.slice(prefix.length);
+        return remainder && !remainder.includes('/');
+      })
+      .sort((a, b) => a.localeCompare(b));
+  };
 
   const handleRefresh = () => {
     fetchWorkloads();
     fetchSchedules();
+    fetchFolders();
+  };
+
+  // Drag-and-drop handlers
+  const handleDragStart = (e: React.DragEvent, workload: Workload) => {
+    const dragData: DragData = {
+      type: 'workload',
+      workloadId: workload.id,
+      workloadName: workload.name,
+      sourceFolder: workload.folder,
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingWorkload(workload.id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingWorkload(null);
+    setDragOverFolder(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, folder: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if this is a workload being dragged
+    if (draggingWorkload) {
+      e.dataTransfer.dropEffect = 'move';
+      setDragOverFolder(folder);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only clear if we're actually leaving the folder element
+    const relatedTarget = e.relatedTarget as Node;
+    const currentTarget = e.currentTarget as Node;
+    if (!currentTarget.contains(relatedTarget)) {
+      setDragOverFolder(null);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetFolder: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(null);
+    setDraggingWorkload(null);
+    
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (!data) return;
+      
+      const dragData: DragData = JSON.parse(data);
+      if (dragData.type !== 'workload') return;
+      
+      // Don't move if source and target are the same
+      if (dragData.sourceFolder === targetFolder) return;
+      
+      // Call API to move the workload
+      const response = await fetch(`http://localhost:2900/workloads/${dragData.workloadId}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetFolder }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to move workload');
+        return;
+      }
+      
+      // Refresh workloads to show updated locations
+      fetchWorkloads();
+      
+      // Expand the target folder so user can see the moved workload
+      if (targetFolder && !expandedFolders.has(targetFolder)) {
+        setExpandedFolders(prev => new Set([...prev, targetFolder]));
+      }
+    } catch (err) {
+      console.error('Drop error:', err);
+    }
   };
 
   return (
@@ -497,14 +762,22 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
               <span>WORKLOADS</span>
               <div className="header-actions">
                 <button 
-                  className="add-btn" 
-                  onClick={handleWorkloadCreate} 
-                  title="New Workload"
+                  className="header-action-btn" 
+                  onClick={handleCreateFolder}
                 >
-                  +
+                  <FolderPlus size={14} />
+                  <span className="header-action-tooltip">New Folder</span>
                 </button>
-                <button className="refresh-btn" onClick={handleRefresh} title="Refresh">
-                  🔄
+                <button 
+                  className="header-action-btn" 
+                  onClick={handleWorkloadCreate}
+                >
+                  <span className="header-action-icon">+</span>
+                  <span className="header-action-tooltip">New Workload</span>
+                </button>
+                <button className="header-action-btn" onClick={handleRefresh}>
+                  <span className="header-action-icon">🔄</span>
+                  <span className="header-action-tooltip">Refresh</span>
                 </button>
               </div>
             </div>
@@ -518,61 +791,85 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
               )}
               {!loading && !error && (
                 <div className="tree">
-                  {sortedFolders.map(folder => (
-                    <div key={folder || '__root__'} className="tree-group">
-                      <div 
-                        className="tree-group-header"
-                        onClick={() => toggleFolder(folder)}
-                      >
-                        <span className="chevron">
-                          {expandedFolders.has(folder) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </span>
-                        <span className="type-icon">
-                          {expandedFolders.has(folder) ? <FolderOpen size={16} /> : <Folder size={16} />}
-                        </span>
-                        <span className="type-name">{folder || '(root)'}</span>
-                        <span className="type-count">{groupedWorkloads[folder].length}</span>
-                      </div>
-                      {expandedFolders.has(folder) && (
-                        <div className="tree-group-items">
-                          {groupedWorkloads[folder].map(workload => {
-                            const isRunning = runningWorkloadIds?.has(workload.id);
-                            const hasErrors = workload.validationErrors && workload.validationErrors.length > 0;
-                            const hasWarnings = workload.validationWarnings && workload.validationWarnings.length > 0;
-                            const validationMessage = [
-                              ...(workload.validationErrors || []),
-                              ...(workload.validationWarnings || [])
-                            ].join('\n');
-                            
-                            return (
-                              <div
-                                key={workload.id}
-                                className={`tree-item ${selectedWorkload?.id === workload.id ? 'selected' : ''} ${isRunning ? 'running' : ''} ${hasErrors ? 'has-error' : ''} ${hasWarnings && !hasErrors ? 'has-warning' : ''}`}
-                                onClick={() => onWorkloadSelect(workload)}
-                                onContextMenu={(e) => handleWorkloadItemContextMenu(e, workload)}
-                                title={validationMessage || workload.description}
-                              >
-                                <span className="item-icon">
-                                  {isRunning ? <span className="spinner-circle" /> : <FileText size={14} />}
-                                </span>
-                                <span className="item-name">{workload.name}</span>
-                                {hasErrors && (
-                                  <span className="validation-indicator error" title={workload.validationErrors?.join('\n')}>
-                                    <AlertCircle size={12} />
-                                  </span>
-                                )}
-                                {hasWarnings && !hasErrors && (
-                                  <span className="validation-indicator warning" title={workload.validationWarnings?.join('\n')}>
-                                    <AlertTriangle size={12} />
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                  {/* Render tree starting from root */}
+                  {(() => {
+                    const renderFolder = (folder: string, depth: number = 0): React.ReactNode => {
+                      const folderWorkloads = groupedWorkloads[folder] || [];
+                      const childFolders = getChildFolders(folder);
+                      const displayName = folder === '' ? 'workloads' : folder.split('/').pop() || folder;
+                      const totalCount = folderWorkloads.length;
+                      
+                      return (
+                        <div key={folder || '__root__'} className="tree-group" style={{ paddingLeft: depth > 0 ? 12 : 0 }}>
+                          <div 
+                            className={`tree-group-header ${dragOverFolder === folder ? 'drag-over' : ''}`}
+                            onClick={() => toggleFolder(folder)}
+                            onContextMenu={(e) => handleFolderContextMenu(e, folder)}
+                            onDragOver={(e) => handleDragOver(e, folder)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, folder)}
+                          >
+                            <span className="chevron">
+                              {expandedFolders.has(folder) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </span>
+                            <span className="type-icon">
+                              {expandedFolders.has(folder) ? <FolderOpen size={16} /> : <Folder size={16} />}
+                            </span>
+                            <span className="type-name">{displayName}</span>
+                            <span className="type-count">{totalCount}</span>
+                          </div>
+                          {expandedFolders.has(folder) && (
+                            <div className="tree-group-items">
+                              {/* Render child folders first (standard file system convention) */}
+                              {childFolders.map(childFolder => renderFolder(childFolder, depth + 1))}
+                              {/* Render workloads in this folder */}
+                              {folderWorkloads.map(workload => {
+                                const isRunning = runningWorkloadIds?.has(workload.id);
+                                const hasErrors = workload.validationErrors && workload.validationErrors.length > 0;
+                                const hasWarnings = workload.validationWarnings && workload.validationWarnings.length > 0;
+                                const validationMessage = [
+                                  ...(workload.validationErrors || []),
+                                  ...(workload.validationWarnings || [])
+                                ].join('\n');
+                                
+                                const isDragging = draggingWorkload === workload.id;
+                                
+                                return (
+                                  <div
+                                    key={workload.id}
+                                    className={`tree-item ${selectedWorkload?.id === workload.id ? 'selected' : ''} ${isRunning ? 'running' : ''} ${hasErrors ? 'has-error' : ''} ${hasWarnings && !hasErrors ? 'has-warning' : ''} ${isDragging ? 'dragging' : ''}`}
+                                    onClick={() => onWorkloadSelect(workload)}
+                                    onContextMenu={(e) => handleWorkloadItemContextMenu(e, workload)}
+                                    title={validationMessage || workload.description}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, workload)}
+                                    onDragEnd={handleDragEnd}
+                                  >
+                                    <span className="item-icon">
+                                      {isRunning ? <span className="spinner-circle" /> : <FileText size={14} />}
+                                    </span>
+                                    <span className="item-name">{workload.name}</span>
+                                    {hasErrors && (
+                                      <span className="validation-indicator error" title={workload.validationErrors?.join('\n')}>
+                                        <AlertCircle size={12} />
+                                      </span>
+                                    )}
+                                    {hasWarnings && !hasErrors && (
+                                      <span className="validation-indicator warning" title={workload.validationWarnings?.join('\n')}>
+                                        <AlertTriangle size={12} />
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      );
+                    };
+                    
+                    return renderFolder('');
+                  })()}
                 </div>
               )}
             </div>
@@ -714,10 +1011,41 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
         </div>
       )}
       
+      {/* Folder Context Menu */}
+      {folderContextMenu.visible && (
+        <div 
+          ref={folderContextMenuRef}
+          className="context-menu"
+          style={{ left: folderContextMenuPos.x, top: folderContextMenuPos.y }}
+        >
+          <button className="context-menu-item" onClick={handleCreateFolder}>
+            <span className="context-icon">📁</span>
+            New Folder
+          </button>
+          <button className="context-menu-item" onClick={handleWorkloadCreate}>
+            <span className="context-icon">➕</span>
+            New Workload
+          </button>
+          {folderContextMenu.folder && (
+            <>
+              <div className="context-menu-divider" />
+              <button className="context-menu-item" onClick={() => handleRenameFolder(folderContextMenu.folder!)}>
+                <span className="context-icon">✏️</span>
+                Rename Folder
+              </button>
+              <button className="context-menu-item context-menu-item-danger" onClick={() => handleDeleteFolder(folderContextMenu.folder!)}>
+                <span className="context-icon">🗑️</span>
+                Delete Folder
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      
       {/* Add/Edit Schedule Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => { setShowAddModal(false); setEditingSchedule(null); }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
               <h3>{editingSchedule ? 'Edit Schedule' : 'Add Schedule'}</h3>
               <button className="modal-close" onClick={() => { setShowAddModal(false); setEditingSchedule(null); }}>✕</button>
@@ -819,6 +1147,60 @@ export const Explorer = forwardRef<ExplorerRef, ExplorerProps>(function Explorer
                 disabled={saving || !newSchedule.name || !newSchedule.workloadId}
               >
                 {saving ? 'Saving...' : editingSchedule ? 'Save Changes' : 'Create Schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Folder Modal */}
+      {showFolderModal && (
+        <div className="modal-overlay">
+          <div className="modal modal-small">
+            <div className="modal-header">
+              <h3>{folderModalMode === 'create' ? 'New Folder' : 'Rename Folder'}</h3>
+              <button className="modal-close" onClick={() => { setShowFolderModal(false); setParentFolder(null); }}>✕</button>
+            </div>
+            <div className="modal-body">
+              {folderModalMode === 'create' && parentFolder && (
+                <div className="form-hint" style={{ marginBottom: '12px' }}>
+                  Creating inside: <strong>{parentFolder}/</strong>
+                </div>
+              )}
+              <div className="form-field">
+                <label>Folder Name <span className="required-indicator">*</span></label>
+                <input
+                  type="text"
+                  value={folderName}
+                  onChange={e => setFolderName(e.target.value)}
+                  placeholder={folderModalMode === 'create' ? 'e.g., daily-tasks' : 'Enter new name...'}
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && folderName.trim()) {
+                      handleSaveFolder();
+                    }
+                  }}
+                />
+                <span className="form-hint">
+                  {folderModalMode === 'create' 
+                    ? 'Use letters, numbers, dashes, and underscores. Use "/" for nested folders.'
+                    : 'Rename will update the folder and preserve all workloads inside.'}
+                </span>
+              </div>
+            </div>
+            {folderError && (
+              <div className="form-error">{folderError}</div>
+            )}
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => { setShowFolderModal(false); setParentFolder(null); }}>
+                Cancel
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={handleSaveFolder}
+                disabled={savingFolder || !folderName.trim()}
+              >
+                {savingFolder ? 'Saving...' : folderModalMode === 'create' ? 'Create Folder' : 'Rename'}
               </button>
             </div>
           </div>

@@ -329,6 +329,71 @@
   color: #c4b5fd;
 }
 
+/* Schedule Progress Bar */
+.schedule-progress-container {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.schedule-progress-bar {
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.schedule-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  position: relative;
+}
+
+/* Shimmer effect for progress bar */
+.schedule-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: progress-shimmer 2s infinite;
+}
+
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.schedule-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #858585;
+}
+
+.schedule-progress-label .progress-text {
+  font-weight: 500;
+}
+
+.schedule-progress-label .time-remaining {
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
 .date-group:first-child .date-count {
   background-color: rgba(157, 124, 216, 0.2);
   color: #c4b5fd;

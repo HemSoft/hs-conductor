@@ -219,7 +219,80 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
+}
+
+.header-action-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  color: #cccccc;
+  opacity: 0.7;
+  line-height: 1;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-action-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-action-icon {
+  font-size: 14px;
+}
+
+/* Custom tooltip for header actions */
+.header-action-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 4px 8px;
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 3px;
+  color: #cccccc;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
+}
+
+.header-action-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #454545;
+}
+
+.header-action-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: -1px;
+  border: 5px solid transparent;
+  border-bottom-color: #252526;
+}
+
+.header-action-btn:hover .header-action-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .add-btn {
@@ -255,6 +328,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 8px 16px;
   background: none;
   border: none;
@@ -263,6 +337,7 @@
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .context-menu-item:hover {
@@ -298,6 +373,11 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   min-width: 480px;
   max-width: 560px;
+}
+
+.modal.modal-small {
+  min-width: 360px;
+  max-width: 420px;
 }
 
 .modal-header {
@@ -635,4 +715,29 @@
 
 .validation-indicator.warning {
   color: #cca700;
+}
+
+/* Drag-and-drop styles */
+.tree-item[draggable="true"] {
+  cursor: grab;
+}
+
+.tree-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.tree-item.dragging {
+  opacity: 0.5;
+  background-color: rgba(0, 120, 212, 0.1);
+}
+
+.tree-group-header.drag-over {
+  background-color: rgba(0, 120, 212, 0.2);
+  outline: 2px dashed #0078d4;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.tree-group-header.drag-over .type-icon {
+  color: #4fc3f7;
 }

@@ -28,8 +28,8 @@ export function DeleteWorkloadModal({ workload, onConfirm, onClose }: DeleteWork
   };
 
   return (
-    <div className="delete-modal-overlay" onClick={onClose}>
-      <div className="delete-modal" onClick={e => e.stopPropagation()}>
+    <div className="delete-modal-overlay">
+      <div className="delete-modal">
         <div className="delete-modal-header">
           <span className="delete-icon">⚠️</span>
           <h3>Delete Workload</h3>

@@ -322,16 +322,16 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       webviewTag: true, // Enable webview for embedding external content with CSS injection
+      // Use isolated partition to prevent zoom level bleeding to other Electron apps
+      partition: 'persist:conductor',
+      // Set initial zoom from saved config
+      zoomFactor: loadZoomLevel(),
     },
   });
 
   // Let windowStateKeeper manage window state (position, size, maximize)
   // It automatically saves state on resize/move and restores maximized state
   mainWindowState.manage(win);
-
-  // Restore saved zoom level
-  const savedZoom = loadZoomLevel();
-  win.webContents.setZoomFactor(savedZoom);
 
   createMenu();
 
