@@ -21,6 +21,7 @@ Before you begin, make sure you have these installed:
 
 | Requirement | Version | How to Check | Install |
 |------------|---------|--------------|---------|
+| **PowerShell** | 5.1+ | `$PSVersionTable.PSVersion` | Built-in on Windows |
 | **Node.js** | 22+ | `node --version` | [nodejs.org](https://nodejs.org/) |
 | **Bun** | 1.2+ | `bun --version` | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
 | **GitHub Copilot CLI** | Latest | `copilot --version` | `npm install -g @github/copilot-cli` |

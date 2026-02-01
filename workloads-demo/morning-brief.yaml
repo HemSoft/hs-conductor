@@ -1,0 +1,109 @@
+# Morning Brief
+# Type: workflow
+# Comprehensive morning briefing with weather, news, and calendar
+
+id: morning-brief
+name: Morning Briefing
+description: Daily briefing combining weather, news, calendar, and priorities
+version: 1.0.0
+tags:
+  - daily
+  - automation
+  - productivity
+
+alert:
+  condition: always
+  message: "☀️ Your morning briefing is ready!"
+
+steps:
+  # === Parallel Fetch Phase ===
+  
+  - id: fetch-weather
+    name: Fetch Weather
+    worker: fetch-worker
+    config:
+      url: https://api.openweathermap.org/data/2.5/weather
+      format: json
+      query:
+        q: "${LOCATION:-Mooresville,NC,US}"
+        appid: "${OPENWEATHER_API_KEY}"
+        units: imperial
+    output: weather.json
+
+  - id: fetch-news
+    name: Fetch News Headlines
+    worker: fetch-worker
+    config:
+      urls:
+        - https://hnrss.org/frontpage
+        - https://feeds.arstechnica.com/arstechnica/technology-lab
+      format: rss
+    output: news.json
+
+  - id: fetch-calendar
+    name: Fetch Today's Calendar
+    worker: exec-worker
+    config:
+      # Placeholder - replace with actual calendar API call
+      command: echo '{"events":[]}'
+      cwd: .
+    output: calendar.json
+
+  # === Aggregation Phase ===
+  
+  - id: aggregate-data
+    name: Aggregate All Data
+    worker: file-worker
+    config:
+      operation: merge-json
+    input:
+      - weather.json
+      - news.json
+      - calendar.json
+    output: aggregated.json
+    depends_on:
+      - fetch-weather
+      - fetch-news
+      - fetch-calendar
+
+  # === Generation Phase ===
+  
+  - id: generate-briefing
+    name: Generate Morning Briefing
+    worker: ai-worker
+    config:
+      prompt: |
+        Create a comprehensive morning briefing based on this data:
+        
+        ## Format
+        
+        # Morning Brief - {date}
+        
+        ## Weather
+        - Current conditions with emoji
+        - High/Low forecast
+        - Activity recommendation
+        
+        ## Top News Headlines (5 items)
+        - Title with link
+        - Brief summary
+        
+        ## Your Calendar
+        - Event count
+        - Next 3 events with times
+        - Time blocks available
+        
+        ## Priorities
+        - Based on calendar and deadlines
+        - Top 3 tasks for today
+        
+        ## Inspiration
+        - Brief motivational quote or insight
+        
+        Make it concise, actionable, and visually appealing with emojis and formatting.
+      model: claude-sonnet-4.5
+    input:
+      - aggregated.json
+    output: morning-briefing.md
+    depends_on:
+      - aggregate-data

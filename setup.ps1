@@ -8,20 +8,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Check PowerShell version - script requires PowerShell 7+ for proper UTF-8 support
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-    Write-Host ""
-    Write-Host "WARNING: PowerShell $($PSVersionTable.PSVersion) detected" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "This script requires PowerShell 7+ for proper Unicode support." -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Options:" -ForegroundColor White
-    Write-Host "  1. Install PowerShell 7: winget install Microsoft.PowerShell" -ForegroundColor Cyan
-    Write-Host "  2. If already installed, run: pwsh .\setup.ps1" -ForegroundColor Cyan
-    Write-Host ""
-    exit 1
-}
-
 Write-Host "" -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "  hs-conductor Setup" -ForegroundColor Cyan
@@ -33,9 +19,9 @@ if (-not $SkipDependencies) {
     Write-Host "[1/4] Checking Bun..." -ForegroundColor Yellow
     try {
         $bunVersion = bun --version 2>$null
-        Write-Host "  ✓ Bun v$bunVersion detected" -ForegroundColor Green
+        Write-Host "  [OK] Bun v$bunVersion detected" -ForegroundColor Green
     } catch {
-        Write-Host "  ✗ Bun not found!" -ForegroundColor Red
+        Write-Host "  [X] Bun not found!" -ForegroundColor Red
         Write-Host "  Install from: https://bun.sh" -ForegroundColor Yellow
         exit 1
     }
@@ -43,7 +29,7 @@ if (-not $SkipDependencies) {
     # Install dependencies
     Write-Host "[2/4] Installing dependencies..." -ForegroundColor Yellow
     bun install
-    Write-Host "  ✓ Dependencies installed" -ForegroundColor Green
+    Write-Host "  [OK] Dependencies installed" -ForegroundColor Green
 } else {
     Write-Host "[1-2/4] Skipping dependency check..." -ForegroundColor Gray
 }
@@ -61,17 +47,17 @@ if (-not $SkipWorkloads) {
     $existingWorkloads = Get-ChildItem -Path "workloads" -Recurse -Filter "*.yaml" -ErrorAction SilentlyContinue
     
     if ($existingWorkloads.Count -gt 0) {
-        Write-Host "  ! Workloads already exist" -ForegroundColor Yellow
+        Write-Host "  [!] Workloads already exist" -ForegroundColor Yellow
         $response = Read-Host "  Overwrite with demo examples? (y/N)"
         if ($response -ne 'y' -and $response -ne 'Y') {
-            Write-Host "  ✓ Keeping existing workloads" -ForegroundColor Green
+            Write-Host "  [OK] Keeping existing workloads" -ForegroundColor Green
         } else {
             Copy-Item -Recurse -Path "workloads-demo\*" -Destination "workloads\" -Force
-            Write-Host "  ✓ Demo workloads copied to workloads/" -ForegroundColor Green
+            Write-Host "  [OK] Demo workloads copied to workloads/" -ForegroundColor Green
         }
     } else {
         Copy-Item -Recurse -Path "workloads-demo\*" -Destination "workloads\" -Force
-        Write-Host "  ✓ Demo workloads copied to workloads/" -ForegroundColor Green
+        Write-Host "  [OK] Demo workloads copied to workloads/" -ForegroundColor Green
     }
 } else {
     Write-Host "[3/4] Skipping workload setup..." -ForegroundColor Gray
@@ -83,13 +69,13 @@ Write-Host "[4/4] Checking environment..." -ForegroundColor Yellow
 if (-not (Test-Path ".env")) {
     if (Test-Path ".env.example") {
         Copy-Item ".env.example" ".env"
-        Write-Host "  ✓ Created .env from .env.example" -ForegroundColor Green
-        Write-Host "  ! Please edit .env and add your configuration" -ForegroundColor Yellow
+        Write-Host "  [OK] Created .env from .env.example" -ForegroundColor Green
+        Write-Host "  [!] Please edit .env and add your configuration" -ForegroundColor Yellow
     } else {
-        Write-Host "  ! No .env.example found" -ForegroundColor Yellow
+        Write-Host "  [!] No .env.example found" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  ✓ .env already exists" -ForegroundColor Green
+    Write-Host "  [OK] .env already exists" -ForegroundColor Green
 }
 
 Write-Host ""
