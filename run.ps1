@@ -44,11 +44,35 @@ Write-Info "Starting hs-conductor..."
 Write-Host ""
 
 # Check if Bun is installed
-if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
-    Write-Error-Custom "Bun is not installed or not in PATH"
+$bunExe = "bun"  # Default to 'bun' if found in PATH
+$bunFound = $false
+
+if (Get-Command bun -ErrorAction SilentlyContinue) {
+    $bunFound = $true
+} else {
+    # Check common installation locations
+    $bunPaths = @(
+        "$env:USERPROFILE\scoop\shims\bun.exe",
+        "$env:USERPROFILE\.bun\bin\bun.exe",
+        "$env:ProgramFiles\Bun\bin\bun.exe"
+    )
+    
+    foreach ($path in $bunPaths) {
+        if (Test-Path $path) {
+            $bunExe = $path
+            $bunFound = $true
+            break
+        }
+    }
+}
+
+if (-not $bunFound) {
+    Write-Error-Custom "Bun is not installed or not found"
+    Write-Host "Please run .\setup.ps1 first" -ForegroundColor Yellow
     exit 1
 }
-$bunVersion = & bun --version 2>$null
+
+$bunVersion = & $bunExe --version 2>$null
 Write-Success "Bun detected: v$bunVersion"
 
 # Save current directory
@@ -82,7 +106,7 @@ $processes = @()
 
 # Start backend server
 Write-Info "Starting backend server on port 2900..."
-$serverProc = Start-Process -FilePath "bun" -ArgumentList "run", "--watch", "src/index.ts" -WorkingDirectory $rootDir -PassThru -NoNewWindow
+$serverProc = Start-Process -FilePath $bunExe -ArgumentList "run", "--watch", "src/index.ts" -WorkingDirectory $rootDir -PassThru -NoNewWindow
 $processes += $serverProc
 
 # Wait for server to be ready
@@ -115,7 +139,7 @@ if (-not $NoInngest) {
 
 # Start admin app
 Write-Info "Starting admin app on port 5173..."
-$adminProc = Start-Process -FilePath "bun" -ArgumentList "run", "dev" -WorkingDirectory $adminDir -PassThru -NoNewWindow
+$adminProc = Start-Process -FilePath $bunExe -ArgumentList "run", "dev" -WorkingDirectory $adminDir -PassThru -NoNewWindow
 $processes += $adminProc
 
 Write-Success "All services started"
